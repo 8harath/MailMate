@@ -12,7 +12,7 @@ export const mockThreads: Thread[] = [
     preview: 'We need to finalize the Q2 budget allocations before the board meeting next Tuesday...',
     timestamp: '2024-03-21T09:15:00Z',
     unreadCount: 3,
-    category: 'company',
+    category: 'finance',
     emails: [
       {
         id: 'email-1-1',
@@ -91,7 +91,7 @@ Sarah`,
     preview: 'We have multiple clients requesting OAuth support. This would significantly improve our adoption...',
     timestamp: '2024-03-20T16:22:00Z',
     unreadCount: 2,
-    category: 'primary',
+    category: 'work',
     emails: [
       {
         id: 'email-2-1',
@@ -162,7 +162,7 @@ Mike`,
     preview: "I've incorporated most of the feedback from the first review. Please check the updated mockups...",
     timestamp: '2024-03-19T13:10:00Z',
     unreadCount: 1,
-    category: 'primary',
+    category: 'work',
     emails: [
       {
         id: 'email-3-1',
@@ -242,7 +242,7 @@ Lisa`,
     preview: 'I\'ve compiled suggestions for the Q2 team offsite. We need to finalize dates and location...',
     timestamp: '2024-03-18T11:45:00Z',
     unreadCount: 1,
-    category: 'social',
+    category: 'personal',
     emails: [
       {
         id: 'email-4-1',
@@ -321,7 +321,7 @@ Cheers`,
     preview: 'The proposal for the TechCorp digital transformation is ready for your review. Please...',
     timestamp: '2024-03-17T15:55:00Z',
     unreadCount: 0,
-    category: 'company',
+    category: 'work',
     emails: [
       {
         id: 'email-5-1',
@@ -406,7 +406,7 @@ Rebecca`,
     preview: 'The March campaign report is complete. Overall performance exceeded targets by 23%...',
     timestamp: '2024-03-16T10:30:00Z',
     unreadCount: 0,
-    category: 'promotion',
+    category: 'updates',
     emails: [
       {
         id: 'email-6-1',

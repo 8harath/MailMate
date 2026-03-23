@@ -1,157 +1,180 @@
 import Link from 'next/link'
-import { Mail, Zap, Settings, ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import {
+  Mail, ArrowRight, Brain, Zap, Calendar, ListChecks, Tags, Clock,
+  FileSearch, MessageSquare, Shield, Sparkles, ChevronRight
+} from 'lucide-react'
+
+const features = [
+  {
+    icon: Brain,
+    title: 'Auto Categorization',
+    desc: 'Instantly sorts emails into Work, Personal, Finance, Updates, or Spam.',
+  },
+  {
+    icon: Zap,
+    title: 'Smart Priority Inbox',
+    desc: 'Classifies every thread as Urgent, Important, Normal, or Low Priority.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'One-Click Smart Replies',
+    desc: 'AI generates 5 context-aware reply options you can send with one click.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Context-Aware Drafts',
+    desc: 'Full reply drafts that understand the entire conversation history.',
+  },
+  {
+    icon: Calendar,
+    title: 'Meeting Detection',
+    desc: 'Finds meetings, calls, and events — suggests calendar entries automatically.',
+  },
+  {
+    icon: ListChecks,
+    title: 'Task Extraction',
+    desc: 'Converts action items into tasks with deadlines and priority levels.',
+  },
+  {
+    icon: Clock,
+    title: 'Follow-Up Reminders',
+    desc: 'Detects when a reply is expected and suggests when to follow up.',
+  },
+  {
+    icon: FileSearch,
+    title: 'Key Info Extraction',
+    desc: 'Pulls out dates, links, contacts, and monetary amounts from threads.',
+  },
+  {
+    icon: Tags,
+    title: 'Auto Labeling',
+    desc: 'Suggests smart labels for organizing and finding emails later.',
+  },
+  {
+    icon: Shield,
+    title: 'Human-in-the-Loop',
+    desc: 'AI never acts alone. You review, edit, and approve every action.',
+  },
+]
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header */}
-      <header className="border-b border-blue-100 bg-white px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center gap-3">
-          <Mail className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">MailMate</h1>
-            <p className="text-sm text-gray-600">AI-powered email assistant</p>
+    <main className="min-h-screen bg-white">
+      {/* Nav */}
+      <nav className="border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Mail className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-lg font-bold text-gray-900">MailMate</span>
+          </div>
+          <Link href="/inbox"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+            Open Inbox <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="pt-20 pb-16 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-1.5 text-sm text-blue-700 font-medium mb-6">
+            <Sparkles className="w-4 h-4" />
+            Powered by Groq AI
+          </div>
+          <h1 className="text-5xl font-bold text-gray-900 leading-tight tracking-tight">
+            Your inbox, <br />
+            <span className="text-blue-600">understood.</span>
+          </h1>
+          <p className="mt-6 text-lg text-gray-500 leading-relaxed max-w-2xl mx-auto">
+            MailMate reads your emails, extracts what matters, drafts replies,
+            finds deadlines, and prepares actions — all before you lift a finger.
+            You stay in control. AI does the heavy lifting.
+          </p>
+          <div className="mt-10 flex items-center justify-center gap-4">
+            <Link href="/inbox"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-xl text-sm transition-colors shadow-sm">
+              Open Inbox <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
-      </header>
+      </section>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        <div className="space-y-12">
-          {/* Hero Section */}
-          <section className="text-center space-y-6">
-            <h2 className="text-4xl font-bold text-gray-900">Welcome to MailMate</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Your AI-powered email companion. Automatically triage threads, extract action items,
-              draft replies, and stay on top of what matters — all in one intelligent inbox.
+      {/* What it does — visual summary */}
+      <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold text-gray-900">One click. Full intelligence.</h2>
+            <p className="text-gray-500 mt-2 max-w-lg mx-auto">
+              Select an email and MailMate instantly delivers everything you need to act.
             </p>
-          </section>
+          </div>
 
-          {/* Two Options */}
-          <section className="grid md:grid-cols-2 gap-8">
-            {/* Demo Version */}
-            <div className="border border-blue-200 rounded-lg p-8 bg-blue-50">
-              <div className="flex items-center gap-3 mb-4">
-                <Zap className="w-6 h-6 text-blue-600" />
-                <h3 className="text-xl font-bold text-gray-900">Interactive Demo</h3>
-              </div>
-              <p className="text-gray-600 mb-6">
-                See MailMate in action with pre-loaded sample emails and mock AI analysis. No API key required.
-              </p>
-              <ul className="space-y-2 mb-8 text-sm text-gray-700">
-                <li>✓ Full working interface</li>
-                <li>✓ Sample email threads</li>
-                <li>✓ Mock AI-generated actions</li>
-                <li>✓ No setup needed</li>
-              </ul>
-              <Link href="/demo">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                  Launch Demo <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-
-            {/* Real Version */}
-            <div className="border border-gray-200 rounded-lg p-8 bg-gray-50">
-              <div className="flex items-center gap-3 mb-4">
-                <Settings className="w-6 h-6 text-gray-600" />
-                <h3 className="text-xl font-bold text-gray-900">Full Application</h3>
-              </div>
-              <p className="text-gray-600 mb-6">
-                Integrate with Groq AI to analyze real emails. Requires API key configuration.
-              </p>
-              <ul className="space-y-2 mb-8 text-sm text-gray-700">
-                <li>✓ Real Groq AI integration</li>
-                <li>✓ Live email analysis</li>
-                <li>✓ Dynamic action generation</li>
-                <li>✓ Production-ready</li>
-              </ul>
-              <Link href="/inbox">
-                <Button variant="outline" className="w-full gap-2">
-                  Launch Full App <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-          </section>
-
-          {/* Setup Instructions */}
-          <section id="setup" className="bg-white border border-gray-200 rounded-lg p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Setup the Full Application</h3>
-
-            <div className="space-y-6">
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">1. Get a Groq API Key</h4>
-                <p className="text-gray-600 mb-3">
-                  Visit{' '}
-                  <a
-                    href="https://console.groq.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    console.groq.com
-                  </a>{' '}
-                  and create a free account to get your API key.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">2. Add the Environment Variable</h4>
-                <p className="text-gray-600 mb-3">Add your Groq API key to your environment:</p>
-                <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                  GROQ_API_KEY=your_api_key_here
+          {/* Pipeline visualization */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { step: '1', label: 'Analyze', detail: 'AI reads the full thread' },
+              { step: '2', label: 'Extract', detail: 'Tasks, deadlines, meetings, key info' },
+              { step: '3', label: 'Prepare', detail: 'Draft replies + smart actions' },
+              { step: '4', label: 'You decide', detail: 'Review, edit, approve, or ignore' },
+            ].map(s => (
+              <div key={s.step} className="bg-white border border-gray-200 rounded-xl p-5 text-center">
+                <div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center mx-auto mb-3 text-sm font-bold">
+                  {s.step}
                 </div>
+                <p className="font-semibold text-gray-900 text-sm">{s.label}</p>
+                <p className="text-xs text-gray-500 mt-1">{s.detail}</p>
               </div>
-
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">3. Navigate to the Full App</h4>
-                <p className="text-gray-600 mb-3">
-                  Once your API key is configured, use the navigation to access the full application. MailMate will
-                  analyze emails in real-time with Groq AI.
-                </p>
-              </div>
-
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900">
-                  <strong>Note:</strong> MailMate is set up and ready to use. Simply add your Groq API key and
-                  you're good to go.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Features */}
-          <section>
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Key Features</h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="p-6 border border-gray-200 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-2">Smart Triage</h4>
-                <p className="text-gray-600 text-sm">
-                  AI-powered thread summaries with priority classification (Urgent, Action, FYI)
-                </p>
-              </div>
-              <div className="p-6 border border-gray-200 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-2">Auto Actions</h4>
-                <p className="text-gray-600 text-sm">
-                  Automatically generate reply drafts, calendar events, and task extraction
-                </p>
-              </div>
-              <div className="p-6 border border-gray-200 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-2">Human-in-the-Loop</h4>
-                <p className="text-gray-600 text-sm">
-                  Review, edit, approve, or regenerate AI suggestions before taking action
-                </p>
-              </div>
-            </div>
-          </section>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Features grid */}
+      <section className="py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold text-gray-900">Built for people who get too much email</h2>
+            <p className="text-gray-500 mt-2">Every feature exists to save you time and reduce inbox anxiety.</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {features.map(f => (
+              <div key={f.title} className="group border border-gray-200 rounded-xl p-5 hover:border-blue-200 hover:bg-blue-50/30 transition-all">
+                <div className="w-9 h-9 bg-gray-100 group-hover:bg-blue-100 rounded-lg flex items-center justify-center mb-3 transition-colors">
+                  <f.icon className="w-[18px] h-[18px] text-gray-600 group-hover:text-blue-600 transition-colors" />
+                </div>
+                <h3 className="font-semibold text-gray-900 text-sm">{f.title}</h3>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-16 px-6 bg-gray-900">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl font-bold text-white">Ready to take control of your inbox?</h2>
+          <p className="text-gray-400 mt-2">No sign-up required. Start analyzing emails instantly.</p>
+          <Link href="/inbox"
+            className="mt-8 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-8 py-3 rounded-xl text-sm transition-colors">
+            Launch MailMate <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-gray-50 mt-20 py-8 px-6">
-        <div className="max-w-6xl mx-auto text-center text-gray-600 text-sm">
-          <p>MailMate &bull; AI Email Assistant &bull; Built with Next.js and Groq AI</p>
+      <footer className="py-8 px-6 border-t border-gray-100">
+        <div className="max-w-5xl mx-auto flex items-center justify-between text-xs text-gray-400">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
+              <Mail className="w-3 h-3 text-white" />
+            </div>
+            <span>MailMate</span>
+          </div>
+          <p>Built with Next.js + Groq AI &middot; Team Avalon</p>
         </div>
       </footer>
     </main>

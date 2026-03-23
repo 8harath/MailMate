@@ -1,4 +1,5 @@
-// Email and Thread Types
+// --- Core Email Types ---
+
 export interface EmailSender {
   name: string
   email: string
@@ -23,7 +24,7 @@ export interface Email {
   attachments?: Attachment[]
 }
 
-export type EmailCategory = 'primary' | 'company' | 'promotion' | 'social'
+export type EmailCategory = 'work' | 'personal' | 'finance' | 'updates' | 'spam'
 
 export interface Thread {
   id: string
@@ -36,71 +37,60 @@ export interface Thread {
   category: EmailCategory
 }
 
-// Priority and Status Types
-export type Priority = 'urgent' | 'action' | 'fyi'
+// --- Comprehensive Analysis ---
 
-export interface AnalysisSummary {
-  bullets: string[]
-  priority: Priority
-  keyPhrases?: string[]
-  actionItems?: string[]
-}
+export type Priority = 'urgent' | 'important' | 'normal' | 'low'
 
-// Action Types
-export type ActionType = 'reply' | 'calendar' | 'task'
-
-export interface ActionCard {
-  id: string
-  type: ActionType
-  threadId: string
-  emailId: string
-  status: 'pending' | 'approved' | 'discarded'
-  createdAt: string
-}
-
-export interface ReplyAction extends ActionCard {
-  type: 'reply'
-  draftBody: string
-}
-
-export interface CalendarAction extends ActionCard {
-  type: 'calendar'
+export interface DetectedMeeting {
   title: string
   date: string
   time: string
-  description: string
   attendees: string[]
 }
 
-export interface TaskAction extends ActionCard {
-  type: 'task'
+export interface ExtractedTask {
   title: string
-  description: string
-  dueDate: string
-  priority: 'low' | 'medium' | 'high'
+  deadline: string
+  priority: 'high' | 'medium' | 'low'
 }
 
-// Analysis State
-export interface ThreadAnalysis {
-  threadId: string
-  summary: AnalysisSummary
-  actions: (ReplyAction | CalendarAction | TaskAction)[]
+export interface DetectedDeadline {
+  description: string
+  date: string
+  urgent: boolean
+}
+
+export interface KeyInfo {
+  dates: string[]
+  links: string[]
+  contacts: string[]
+  amounts: string[]
+}
+
+export interface ComprehensiveAnalysis {
+  summary: string[]
+  priority: Priority
+  category: EmailCategory
+  smartReplies: string[]
+  draftReply: string
+  meetings: DetectedMeeting[]
+  tasks: ExtractedTask[]
+  deadlines: DetectedDeadline[]
+  keyInfo: KeyInfo
+  labels: string[]
+  followUpNeeded: boolean
+  followUpSuggestion: string
+  senderImportance: 'vip' | 'regular' | 'unknown'
+}
+
+// --- UI State Types ---
+
+export interface ThreadAnalysisState {
+  data: ComprehensiveAnalysis | null
   loading: boolean
   error: string | null
-  regeneratingActionId?: string
 }
 
-export interface AppState {
-  threads: Thread[]
-  selectedThreadId: string | null
-  analyses: Record<string, ThreadAnalysis>
-  toastMessage?: {
-    type: 'success' | 'error' | 'info'
-    message: string
-  }
-}
-
-// AI Chat message type
 export interface AIChatMessage {
   id: string
   role: 'user' | 'assistant'

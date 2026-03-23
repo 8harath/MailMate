@@ -1,141 +1,130 @@
 import { generateText } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
-import { Thread, AnalysisSummary, Priority } from '@/types'
+import { Thread, ComprehensiveAnalysis } from '@/types'
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 })
 
-export async function analyzeThread(thread: Thread): Promise<AnalysisSummary> {
+const MODEL = 'llama-3.3-70b-versatile'
+
+export async function comprehensiveAnalyze(thread: Thread): Promise<ComprehensiveAnalysis> {
   const emailContent = thread.emails
-    .map((email) => `From: ${email.from.name}\nTo: ${email.to.map((t) => t.name).join(', ')}\n\n${email.body}`)
+    .map((e) => `From: ${e.from.name} <${e.from.email}>\nDate: ${e.timestamp}\n\n${e.body}`)
     .join('\n\n---\n\n')
 
   const { text } = await generateText({
-    model: groq('llama-3.3-70b-versatile'),
-    system: `You are an email triage assistant. Analyze the email thread and respond with ONLY a valid JSON object in this format:
+    model: groq(MODEL),
+    system: `You are MailMate, an AI email analysis engine. Analyze the email thread and respond with ONLY a valid JSON object. No markdown, no explanation, just JSON.
+
+The JSON must match this exact schema:
 {
-  "bullets": ["bullet 1", "bullet 2", "bullet 3"],
-  "priority": "urgent" | "action" | "fyi"
+  "summary": ["bullet 1", "bullet 2", "bullet 3"],
+  "priority": "urgent" | "important" | "normal" | "low",
+  "category": "work" | "personal" | "finance" | "updates" | "spam",
+  "smartReplies": ["short reply 1", "short reply 2", "short reply 3", "short reply 4", "short reply 5"],
+  "draftReply": "full professional reply draft text",
+  "meetings": [{"title": "string", "date": "YYYY-MM-DD", "time": "HH:mm", "attendees": ["email"]}],
+  "tasks": [{"title": "string", "deadline": "YYYY-MM-DD", "priority": "high|medium|low"}],
+  "deadlines": [{"description": "string", "date": "YYYY-MM-DD", "urgent": true/false}],
+  "keyInfo": {"dates": ["string"], "links": ["string"], "contacts": ["name <email>"], "amounts": ["$X"]},
+  "labels": ["label1", "label2"],
+  "followUpNeeded": true/false,
+  "followUpSuggestion": "suggestion or empty string",
+  "senderImportance": "vip" | "regular" | "unknown"
 }
 
-Priority guidelines:
-- "urgent": Requires immediate action or time-sensitive decisions
-- "action": Requires response or action but not immediately time-critical
-- "fyi": For information only, no action required`,
-    prompt: `Analyze this email thread and provide a 3-bullet summary and priority level.\n\nThread subject: ${thread.subject}\n\nEmails:\n${emailContent}`,
+Guidelines:
+- priority: "urgent" = immediate action/time-sensitive. "important" = needs response soon. "normal" = standard. "low" = FYI only.
+- category: Classify based on content. "work" = professional/business. "personal" = personal matters. "finance" = money/invoices/budgets. "updates" = newsletters/status reports. "spam" = promotional/unwanted.
+- smartReplies: Generate 5 short, natural one-click reply options appropriate to the email context. Examples: "Sounds good, I'll review it", "Thanks for the update", "Let me check and get back to you", "I'll have it ready by Friday", "Can we discuss this tomorrow?"
+- draftReply: Write a full, professional reply to the most recent email. Be context-aware of the entire thread.
+- meetings: Extract any meetings, calls, or events mentioned. Empty array if none.
+- tasks: Extract action items with realistic deadlines. Empty array if none.
+- deadlines: Extract all deadlines/due dates mentioned. Mark as urgent if within 3 days.
+- keyInfo: Extract dates, URLs/links, contact info, and monetary amounts mentioned. Empty arrays if none.
+- labels: Suggest 2-4 short labels for organizing this email (e.g., "budget", "q2", "design-review", "client").
+- followUpNeeded: true if the latest email expects a response from the user.
+- followUpSuggestion: If follow-up needed, suggest when/how to follow up.
+- senderImportance: "vip" for executives/clients/key stakeholders, "regular" for known contacts, "unknown" for new senders.`,
+    prompt: `Analyze this email thread:\n\nSubject: ${thread.subject}\nFrom: ${thread.from.name} <${thread.from.email}>\n\nThread:\n${emailContent}`,
   })
 
   try {
-    const result = JSON.parse(text)
+    // Clean potential markdown wrapping
+    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const result = JSON.parse(cleaned)
+
     return {
-      bullets: Array.isArray(result.bullets) ? result.bullets : ['Unable to parse analysis'],
-      priority: (['urgent', 'action', 'fyi'].includes(result.priority) ? result.priority : 'action') as Priority,
+      summary: Array.isArray(result.summary) ? result.summary.slice(0, 3) : ['Unable to summarize'],
+      priority: ['urgent', 'important', 'normal', 'low'].includes(result.priority) ? result.priority : 'normal',
+      category: ['work', 'personal', 'finance', 'updates', 'spam'].includes(result.category) ? result.category : 'work',
+      smartReplies: Array.isArray(result.smartReplies) ? result.smartReplies.slice(0, 5) : [],
+      draftReply: typeof result.draftReply === 'string' ? result.draftReply : '',
+      meetings: Array.isArray(result.meetings) ? result.meetings.map((m: Record<string, unknown>) => ({
+        title: String(m.title ?? 'Meeting'),
+        date: String(m.date ?? ''),
+        time: String(m.time ?? ''),
+        attendees: Array.isArray(m.attendees) ? m.attendees.map(String) : [],
+      })) : [],
+      tasks: Array.isArray(result.tasks) ? result.tasks.map((t: Record<string, unknown>) => ({
+        title: String(t.title ?? 'Task'),
+        deadline: String(t.deadline ?? ''),
+        priority: ['high', 'medium', 'low'].includes(String(t.priority)) ? String(t.priority) as 'high' | 'medium' | 'low' : 'medium',
+      })) : [],
+      deadlines: Array.isArray(result.deadlines) ? result.deadlines.map((d: Record<string, unknown>) => ({
+        description: String(d.description ?? ''),
+        date: String(d.date ?? ''),
+        urgent: Boolean(d.urgent),
+      })) : [],
+      keyInfo: {
+        dates: Array.isArray(result.keyInfo?.dates) ? result.keyInfo.dates.map(String) : [],
+        links: Array.isArray(result.keyInfo?.links) ? result.keyInfo.links.map(String) : [],
+        contacts: Array.isArray(result.keyInfo?.contacts) ? result.keyInfo.contacts.map(String) : [],
+        amounts: Array.isArray(result.keyInfo?.amounts) ? result.keyInfo.amounts.map(String) : [],
+      },
+      labels: Array.isArray(result.labels) ? result.labels.map(String).slice(0, 4) : [],
+      followUpNeeded: Boolean(result.followUpNeeded),
+      followUpSuggestion: typeof result.followUpSuggestion === 'string' ? result.followUpSuggestion : '',
+      senderImportance: ['vip', 'regular', 'unknown'].includes(result.senderImportance) ? result.senderImportance : 'regular',
     }
   } catch {
     return {
-      bullets: ['Unable to analyze this thread'],
-      priority: 'fyi',
+      summary: ['Unable to analyze this thread'],
+      priority: 'normal',
+      category: 'work',
+      smartReplies: [],
+      draftReply: '',
+      meetings: [],
+      tasks: [],
+      deadlines: [],
+      keyInfo: { dates: [], links: [], contacts: [], amounts: [] },
+      labels: [],
+      followUpNeeded: false,
+      followUpSuggestion: '',
+      senderImportance: 'unknown',
     }
   }
 }
 
-export async function generateReply(thread: Thread): Promise<string> {
-  const emailContent = thread.emails
-    .map((email) => `From: ${email.from.name}: ${email.body}`)
-    .join('\n\n')
-
+export async function composeDraft(subject: string, context?: string): Promise<string> {
   const { text } = await generateText({
-    model: groq('llama-3.3-70b-versatile'),
-    system: `You are a professional email assistant. Generate a concise, professional email reply based on the thread context. 
-Return ONLY the email body text, no subject line or salutation.`,
-    prompt: `Based on this email thread, draft a professional reply:\n\nThread subject: ${thread.subject}\n\nEmails:\n${emailContent}`,
+    model: groq(MODEL),
+    system: 'You are a professional email assistant. Write a clear, professional email body based on the subject and context. Return ONLY the email body text.',
+    prompt: `Write an email about: ${subject}${context ? `\n\nContext: ${context}` : ''}`,
   })
-
   return text.trim()
 }
 
-export async function extractCalendarEvent(thread: Thread): Promise<{
-  title: string
-  date: string
-  time: string
-  description: string
-  attendees: string[]
-}> {
-  const emailContent = thread.emails.map((email) => email.body).join('\n\n')
+export async function chatAboutThread(message: string, thread: Thread | null): Promise<string> {
+  const emailContext = thread
+    ? thread.emails.map((e) => `From: ${e.from.name}\n${e.body}`).join('\n---\n')
+    : 'No email selected.'
 
   const { text } = await generateText({
-    model: groq('llama-3.3-70b-versatile'),
-    system: `You are an email analysis assistant. Extract calendar event details from the email thread.
-Respond with ONLY a valid JSON object in this format:
-{
-  "title": "Event title",
-  "date": "YYYY-MM-DD",
-  "time": "HH:mm",
-  "description": "Event description",
-  "attendees": ["email@example.com"]
-}
-
-If no specific date/time is mentioned, use reasonable defaults based on context.`,
-    prompt: `Extract calendar event details from this email thread:\n\nSubject: ${thread.subject}\n\nEmails:\n${emailContent}`,
+    model: groq(MODEL),
+    system: 'You are MailMate, an AI email assistant. Help users understand and respond to emails. Be concise and actionable.',
+    prompt: `Email thread context:\nSubject: ${thread?.subject ?? 'None'}\n\n${emailContext}\n\nUser: ${message}`,
   })
-
-  try {
-    const result = JSON.parse(text)
-    return {
-      title: result.title || 'Meeting',
-      date: result.date || new Date().toISOString().split('T')[0],
-      time: result.time || '14:00',
-      description: result.description || '',
-      attendees: Array.isArray(result.attendees) ? result.attendees : [],
-    }
-  } catch {
-    return {
-      title: 'Meeting from ' + thread.from.name,
-      date: new Date().toISOString().split('T')[0],
-      time: '14:00',
-      description: thread.subject,
-      attendees: [thread.from.email],
-    }
-  }
-}
-
-export async function extractTasks(thread: Thread): Promise<Array<{
-  title: string
-  description: string
-  dueDate: string
-  priority: 'low' | 'medium' | 'high'
-}>> {
-  const emailContent = thread.emails.map((email) => email.body).join('\n\n')
-
-  const { text } = await generateText({
-    model: groq('llama-3.3-70b-versatile'),
-    system: `You are an email analysis assistant. Extract action items/tasks from the email thread.
-Respond with ONLY a valid JSON array of task objects in this format:
-[
-  {
-    "title": "Task title",
-    "description": "Task description",
-    "dueDate": "YYYY-MM-DD",
-    "priority": "low" | "medium" | "high"
-  }
-]
-
-If no specific due date is mentioned, use a reasonable default (e.g., 3-5 days from now for high priority, 1-2 weeks for others).`,
-    prompt: `Extract action items/tasks from this email thread:\n\nSubject: ${thread.subject}\n\nEmails:\n${emailContent}`,
-  })
-
-  try {
-    const result = JSON.parse(text)
-    return Array.isArray(result)
-      ? result.map((task) => ({
-          title: task.title || 'Action item',
-          description: task.description || '',
-          dueDate: task.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority : 'medium',
-        }))
-      : []
-  } catch {
-    return []
-  }
+  return text.trim()
 }
