@@ -3,6 +3,7 @@ import {
   Mail, ArrowRight, Brain, Zap, Calendar, ListChecks, Tags, Clock,
   FileSearch, MessageSquare, Shield, Sparkles, ChevronRight
 } from 'lucide-react'
+import { Logo } from '@/components/logo'
 
 const features = [
   {
@@ -63,12 +64,7 @@ export default function Home() {
       {/* Nav */}
       <nav className="border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Mail className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-bold text-gray-900">MailMate</span>
-          </div>
+          <Logo />
           <Link href="/inbox"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
             Open Inbox <ChevronRight className="w-4 h-4" />
@@ -169,10 +165,10 @@ export default function Home() {
       <footer className="py-8 px-6 border-t border-gray-100">
         <div className="max-w-5xl mx-auto flex items-center justify-between text-xs text-gray-400">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
+            <div className="w-5 h-5 bg-blue-600 rounded-md flex items-center justify-center">
               <Mail className="w-3 h-3 text-white" />
             </div>
-            <span>MailMate</span>
+            <span className="font-medium">MailMate</span>
           </div>
           <p>Built with Next.js + Groq AI &middot; Team Avalon</p>
         </div>

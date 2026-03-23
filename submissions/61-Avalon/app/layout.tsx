@@ -10,12 +10,7 @@ export const metadata: Metadata = {
   title: 'MailMate - AI Email Assistant',
   description: 'MailMate: AI-powered email assistant with smart triage, automated action suggestions, and intelligent drafting',
   icons: {
-    icon: [
-      { url: '/icon-light-32x32.svg', media: '(prefers-color-scheme: light)', type: 'image/svg+xml' },
-      { url: '/icon-dark-32x32.svg', media: '(prefers-color-scheme: dark)', type: 'image/svg+xml' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/favicon.ico',
   },
 }
 
@@ -26,6 +21,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </head>
       <body className="font-sans antialiased">
         {children}
         <Analytics />

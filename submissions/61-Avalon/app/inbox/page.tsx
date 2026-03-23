@@ -9,6 +9,7 @@ import {
 import NextLink from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/logo'
 import { mockThreads } from '@/data/emails'
 import {
   Thread, ComprehensiveAnalysis, ThreadAnalysisState,
@@ -500,11 +501,8 @@ export default function InboxPage() {
     <div className="h-screen flex flex-col bg-white">
       {/* Top bar */}
       <header className="border-b border-gray-100 bg-white/80 backdrop-blur-sm h-14 flex items-center px-4 gap-4 shrink-0">
-        <NextLink href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Mail className="w-3.5 h-3.5 text-white" />
-          </div>
-          <span className="font-bold text-gray-900 text-sm">MailMate</span>
+        <NextLink href="/" className="hover:opacity-80 transition-opacity">
+          <Logo size="sm" />
         </NextLink>
 
         <div className="flex-1 max-w-md relative">
