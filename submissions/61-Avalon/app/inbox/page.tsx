@@ -23,7 +23,15 @@ function loadAnalyses(): Record<string, ComprehensiveAnalysis> {
   if (typeof window === 'undefined') return {}
   try {
     const raw = localStorage.getItem(LS_KEY)
-    return raw ? JSON.parse(raw) : {}
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    // Validate shape — if stale from old format, discard
+    const first = Object.values(parsed)[0] as Record<string, unknown> | undefined
+    if (first && !('summary' in first && 'smartReplies' in first)) {
+      localStorage.removeItem(LS_KEY)
+      return {}
+    }
+    return parsed
   } catch { return {} }
 }
 
@@ -61,13 +69,13 @@ const categoryConfig: Record<EmailCategory, { label: string; cls: string }> = {
   spam: { label: 'Spam', cls: 'bg-gray-100 text-gray-500' },
 }
 
-function PriorityBadge({ priority }: { priority: Priority }) {
-  const c = priorityConfig[priority]
+function PriorityBadge({ priority }: { priority: string }) {
+  const c = priorityConfig[priority as Priority] ?? priorityConfig.normal
   return <span className={`inline-flex items-center border rounded-full text-[11px] font-medium px-2 py-px ${c.cls}`}>{c.label}</span>
 }
 
-function CategoryBadge({ category }: { category: EmailCategory }) {
-  const c = categoryConfig[category]
+function CategoryBadge({ category }: { category: string }) {
+  const c = categoryConfig[category as EmailCategory] ?? categoryConfig.work
   return <span className={`inline-flex items-center rounded-full text-[11px] font-medium px-2 py-px ${c.cls}`}>{c.label}</span>
 }
 
@@ -104,7 +112,7 @@ function ThreadListItem({ thread, selected, analysis, onClick }: {
             <span className="text-[11px] text-gray-400 shrink-0">{timeAgo(thread.timestamp)}</span>
           </div>
           <div className="flex items-center gap-1.5 mt-px">
-            {analysis && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor[analysis.priority]}`} />}
+            {analysis && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor[analysis.priority as Priority] ?? 'bg-gray-300'}`} />}
             <p className={`text-sm truncate ${thread.unreadCount > 0 ? 'font-medium text-gray-900' : 'text-gray-700'}`}>
               {thread.subject}
             </p>
@@ -256,7 +264,7 @@ function TasksSection({ tasks }: { tasks: ComprehensiveAnalysis['tasks'] }) {
               <p className="text-sm text-gray-800">{t.title}</p>
               <p className="text-xs text-gray-400">{t.deadline && `Due: ${t.deadline}`}</p>
             </div>
-            <span className={`text-[11px] font-medium ${taskPriorityColor[t.priority]}`}>{t.priority}</span>
+            <span className={`text-[11px] font-medium ${taskPriorityColor[t.priority] ?? 'text-gray-500'}`}>{t.priority}</span>
           </div>
         ))}
       </div>
