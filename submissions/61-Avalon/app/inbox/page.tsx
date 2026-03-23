@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import NextLink from 'next/link'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +24,14 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Calendar as DayPickerCalendar } from '@/components/ui/calendar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Empty,
   EmptyContent,
@@ -213,6 +222,76 @@ const folderMeta: Record<SidebarFolder, {
     emptyTitle: 'No mail available',
     emptyDescription: 'This workspace does not have any visible conversations yet.',
   },
+}
+
+function titleCase(value: string) {
+  return value.replace(/[-_]/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
+}
+
+function deriveThreadTags(thread: Thread, analysis: ComprehensiveAnalysis | null | undefined, meta: ThreadMeta) {
+  const tags: string[] = []
+  const attachments = thread.emails.some(email => (email.attachments?.length ?? 0) > 0)
+
+  tags.push(titleCase(analysis?.category ?? thread.category))
+
+  if (analysis?.priority) tags.push(priorityConfig[analysis.priority]?.label ?? titleCase(analysis.priority))
+  if (analysis?.senderImportance === 'vip') tags.push('VIP')
+  if (analysis?.followUpNeeded) tags.push('Needs Reply')
+  if (analysis?.meetings.length) tags.push('Meeting')
+  if (analysis?.tasks.length) tags.push('Task')
+  if (analysis?.deadlines.length) tags.push('Deadline')
+  if (attachments) tags.push('Attachment')
+  if (meta.starred) tags.push('Starred')
+  if (!meta.read) tags.push('Unread')
+  if (meta.userLabels.length) tags.push(...meta.userLabels.slice(0, 2))
+
+  return Array.from(new Set(tags)).slice(0, 6)
+}
+
+function getPositiveReply(thread: Thread, analysis: ComprehensiveAnalysis) {
+  const positiveCandidate = analysis.smartReplies.find(reply => !/\b(no|not|can't|cannot|decline|unable|won't|pass)\b/i.test(reply))
+  if (positiveCandidate) return positiveCandidate
+  if (analysis.meetings.length > 0) return `This works for me. Please send the invite and I'll be there.`
+  if (analysis.tasks.length > 0 || analysis.followUpNeeded) return `Thanks for sending this over. I'll take care of it and follow up shortly.`
+  return `Thanks for the note about "${thread.subject}". This works for me and I'll move forward on my side.`
+}
+
+function getDeclineReply(thread: Thread, analysis: ComprehensiveAnalysis) {
+  if (analysis.meetings.length > 0) {
+    return `Thanks for the invitation. I won't be able to join this meeting, so please proceed without me or share notes afterward.`
+  }
+
+  switch (analysis.category) {
+    case 'spam':
+      return `Thanks for reaching out. I'm going to pass on this and won't take any action on it.`
+    case 'updates':
+      return `Thanks for the update. I don't need to take this forward from my side right now.`
+    case 'finance':
+      return `Thanks for sending this over. I can't approve or commit to this request at the moment.`
+    case 'personal':
+      return `Thanks for thinking of me. I won't be able to commit to this right now.`
+    default:
+      return `Thanks for the note. I won't be able to take this on right now, so please move ahead without me.`
+  }
+}
+
+function buildQuickReplyOptions(thread: Thread, analysis: ComprehensiveAnalysis) {
+  return [
+    {
+      kind: 'positive' as const,
+      label: 'Positive',
+      text: getPositiveReply(thread, analysis),
+      tone: 'Approve or accept the request',
+      classes: 'border-emerald-200 bg-emerald-50/70 text-emerald-900 hover:border-emerald-300 hover:bg-emerald-50',
+    },
+    {
+      kind: 'decline' as const,
+      label: 'Decline',
+      text: getDeclineReply(thread, analysis),
+      tone: 'Politely decline or opt out',
+      classes: 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-slate-100',
+    },
+  ]
 }
 
 function isSameDay(left: Date, right: Date) {
@@ -532,6 +611,7 @@ function ThreadListItem({ thread, selected, analysis, meta, onSelect, onStar }: 
 }) {
   const dotColor: Record<string, string> = { urgent: 'bg-red-500', important: 'bg-amber-500', normal: 'bg-gray-300', low: 'bg-slate-200' }
   const isUnread = !meta.read
+  const overviewTags = deriveThreadTags(thread, analysis, meta).slice(0, 3)
 
   return (
     <button onClick={onSelect}
@@ -582,6 +662,13 @@ function ThreadListItem({ thread, selected, analysis, meta, onSelect, onStar }: 
               </span>
             )}
           </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {overviewTags.map(tag => (
+              <Badge key={tag} variant="outline" className="rounded-full border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                {tag}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
     </button>
@@ -590,51 +677,77 @@ function ThreadListItem({ thread, selected, analysis, meta, onSelect, onStar }: 
 
 // ─── Analysis sections ──────────────────────────────────────────
 
-function SummarySection({ analysis }: { analysis: ComprehensiveAnalysis }) {
+function SummarySection({ thread, analysis, meta }: { thread: Thread; analysis: ComprehensiveAnalysis; meta: ThreadMeta }) {
+  const overviewTags = deriveThreadTags(thread, analysis, meta)
   return (
-    <div className="space-y-4">
-      <div className="flex items-center flex-wrap gap-2">
-        <PriorityBadge priority={analysis.priority} />
-        <CategoryBadge category={analysis.category} />
-        <SenderBadge importance={analysis.senderImportance} />
-        {analysis.labels.map(l => (
-          <span key={l} className="inline-flex items-center gap-1 text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 font-medium">
-            <Tag className="w-2.5 h-2.5" />{l}
-          </span>
-        ))}
-      </div>
-      <div className="bg-gradient-to-br from-gray-50 to-slate-50/50 rounded-2xl p-5 border border-gray-100">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-blue-500" /> AI Summary
-        </p>
-        <ul className="space-y-2">
-          {analysis.summary.map((s, i) => (
-            <li key={i} className="text-sm text-gray-700 flex items-start gap-2.5 leading-relaxed">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 shrink-0" />{s}
-            </li>
+    <Card className="overflow-hidden border-gray-200 shadow-sm">
+      <CardHeader className="border-b border-gray-100 pb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <PriorityBadge priority={analysis.priority} />
+          <CategoryBadge category={analysis.category} />
+          <SenderBadge importance={analysis.senderImportance} />
+          {overviewTags.map(tag => (
+            <Badge key={tag} variant="outline" className="rounded-full border-gray-200 bg-gray-50 text-gray-600">
+              <Tag className="w-3 h-3" />
+              {tag}
+            </Badge>
           ))}
-        </ul>
-      </div>
-    </div>
+        </div>
+        <div>
+          <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
+            <Sparkles className="w-4 h-4 text-blue-600" />
+            Executive summary
+          </CardTitle>
+          <CardDescription className="mt-1 text-gray-500">
+            Condensed thread context for fast review before you approve the next action.
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 p-5">
+        {analysis.summary.map((s, i) => (
+          <div key={i} className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+              {i + 1}
+            </div>
+            <p className="text-sm leading-relaxed text-gray-700">{s}</p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   )
 }
 
-function SmartRepliesSection({ replies, onUseReply }: { replies: string[]; onUseReply: (text: string) => void }) {
-  if (replies.length === 0) return null
+function SmartRepliesSection({ thread, analysis, onUseReply }: { thread: Thread; analysis: ComprehensiveAnalysis; onUseReply: (text: string) => void }) {
+  const replies = buildQuickReplyOptions(thread, analysis)
   return (
-    <div>
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <MessageSquare className="w-3.5 h-3.5 text-blue-500" /> Quick Replies
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {replies.map((r, i) => (
-          <button key={i} onClick={() => onUseReply(r)}
-            className="text-xs bg-white border border-gray-200 rounded-xl px-3.5 py-2 hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-sm transition-all text-gray-700 font-medium">
-            {r}
+    <Card className="overflow-hidden border-gray-200 shadow-sm">
+      <CardHeader className="border-b border-gray-100 pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
+          <MessageSquare className="w-4 h-4 text-blue-600" />
+          Quick replies
+        </CardTitle>
+        <CardDescription className="text-gray-500">
+          One affirmative option and one decline option, ready to place into the reply composer.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3 p-5 lg:grid-cols-2">
+        {replies.map(reply => (
+          <button
+            key={reply.kind}
+            onClick={() => onUseReply(reply.text)}
+            className={`rounded-2xl border p-4 text-left transition-all ${reply.classes}`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <Badge variant="outline" className="rounded-full border-current/15 bg-white/70 text-current">
+                {reply.label}
+              </Badge>
+              <span className="text-[11px] font-medium text-gray-500">{reply.tone}</span>
+            </div>
+            <p className="mt-3 text-sm font-medium leading-relaxed">{reply.text}</p>
           </button>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -642,18 +755,24 @@ function DraftReplySection({ draft }: { draft: string }) {
   const [copied, setCopied] = useState(false)
   if (!draft) return null
   return (
-    <div>
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <FileText className="w-3.5 h-3.5 text-blue-500" /> AI-Suggested Reply
-      </p>
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 relative shadow-sm">
+    <Card className="overflow-hidden border-gray-200 shadow-sm">
+      <CardHeader className="border-b border-gray-100 pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
+          <FileText className="w-4 h-4 text-blue-600" />
+          Drafted reply
+        </CardTitle>
+        <CardDescription className="text-gray-500">
+          A full professional draft built from the latest thread context.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="relative p-5">
         <p className="text-sm text-gray-700 whitespace-pre-wrap pr-8 leading-relaxed">{draft}</p>
         <button onClick={() => { navigator.clipboard.writeText(draft); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
           className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
           {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
         </button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -684,42 +803,59 @@ function MeetingsSection({ meetings, isAuthenticated }: { meetings: Comprehensiv
 
   if (meetings.length === 0) return null
   return (
-    <div>
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <Calendar className="w-3.5 h-3.5 text-emerald-500" /> Detected Meetings
-      </p>
-      <div className="space-y-2.5">
+    <Card className="border-gray-200 shadow-sm">
+      <CardHeader className="border-b border-gray-100 pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
+          <Calendar className="w-4 h-4 text-emerald-600" />
+          Meeting actions
+        </CardTitle>
+        <CardDescription className="text-gray-500">
+          Calendar-ready events extracted from the thread.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 p-5">
         {meetings.map((m, i) => (
-          <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
+          <div key={i} className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900">{m.title}</p>
-                <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
                   <span className="flex items-center gap-1 font-medium"><Calendar className="w-3 h-3 text-emerald-500" />{m.date}</span>
                   {m.time && <span className="flex items-center gap-1 font-medium"><Clock className="w-3 h-3 text-blue-500" />{m.time}</span>}
                 </div>
-                {m.attendees.length > 0 && <p className="text-xs text-gray-400 mt-1.5"><Users className="w-3 h-3 inline mr-1" />{m.attendees.join(', ')}</p>}
+                {m.attendees.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {m.attendees.map(attendee => (
+                      <Badge key={attendee} variant="outline" className="rounded-full border-gray-200 bg-white text-gray-600">
+                        <Users className="w-3 h-3" />
+                        {attendee}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               {isAuthenticated && (
-                <button
+                <Button
                   onClick={() => addToCalendar(m, i)}
                   disabled={addingIdx === i || addedIdx.has(i)}
-                  className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-2 rounded-xl transition-all ${
+                  variant="outline"
+                  size="sm"
+                  className={`shrink-0 rounded-xl ${
                     addedIdx.has(i)
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 hover:shadow-sm'
-                  } disabled:opacity-50`}
+                      ? 'border-green-200 bg-green-50 text-green-700'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
                 >
                   {addingIdx === i ? <Loader2 className="w-3 h-3 animate-spin" /> :
                    addedIdx.has(i) ? <><Check className="w-3 h-3" /> Added</> :
-                   <><CalendarPlus className="w-3 h-3" /> Add to Calendar</>}
-                </button>
+                   <><CalendarPlus className="w-3 h-3" /> Add to calendar</>}
+                </Button>
               )}
             </div>
           </div>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -799,7 +935,7 @@ function KeyInfoSection({ keyInfo }: { keyInfo: ComprehensiveAnalysis['keyInfo']
 function FollowUpSection({ needed, suggestion }: { needed: boolean; suggestion: string }) {
   if (!needed) return null
   return (
-    <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/80 rounded-2xl p-4 flex items-start gap-3">
+    <div className="rounded-2xl border border-amber-200/80 bg-[linear-gradient(135deg,rgba(255,251,235,1),rgba(255,255,255,1))] p-4 flex items-start gap-3 shadow-sm">
       <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
         <Clock className="w-4 h-4 text-orange-600" />
       </div>
@@ -1613,6 +1749,9 @@ export default function InboxPage() {
   // Determine sender and recipient names for the compose panel
   const currentSenderName = userName || undefined
   const currentRecipientName = selectedThread?.from.name || undefined
+  const availableThreadLabels = selectedThread
+    ? allUserLabels.filter(label => !getMeta(selectedThread.id).userLabels.includes(label))
+    : []
 
   return (
     <div className="h-screen flex flex-col bg-gray-50/50">
@@ -1685,9 +1824,38 @@ export default function InboxPage() {
           </Button>
 
           {isAuthenticated ? (
-            <Button variant="outline" size="sm" onClick={() => signOut()} className="rounded-full">
-              <LogOut className="w-4 h-4 mr-1.5" /> {session?.user?.name?.split(' ')[0] ?? 'Sign out'}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-3 rounded-full border border-gray-200 bg-white pl-2 pr-3 py-1.5 shadow-sm transition-colors hover:bg-gray-50">
+                  <Avatar className="h-9 w-9 border border-gray-200">
+                    <AvatarImage src={session?.user?.image ?? ''} alt={session?.user?.name ?? 'User'} />
+                    <AvatarFallback className="bg-slate-100 text-slate-700">
+                      {session?.user?.name?.charAt(0) ?? 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="text-left leading-tight">
+                    <p className="max-w-[140px] truncate text-sm font-semibold text-gray-800">
+                      {session?.user?.name ?? 'Connected account'}
+                    </p>
+                    <p className="max-w-[160px] truncate text-xs text-gray-500">
+                      {session?.user?.email ?? 'Google connected'}
+                    </p>
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl border-gray-200 p-2">
+                <DropdownMenuLabel className="text-xs text-gray-500">Connected Google account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="rounded-lg text-sm">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  {session?.user?.email ?? 'No email available'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()} className="rounded-lg text-sm">
+                  <LogOut className="w-4 h-4 text-gray-400" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button variant="outline" size="sm" onClick={() => signIn('google', { callbackUrl: '/inbox' })}
               className="rounded-full border-blue-200 text-blue-700 hover:bg-blue-50">
@@ -1700,20 +1868,11 @@ export default function InboxPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar — collapsed (icons only) by default, expands on hover */}
         <aside
-          onMouseEnter={() => { if (!sidebarPinned) setSidebarExpanded(true) }}
-          onMouseLeave={() => { if (!sidebarPinned) setSidebarExpanded(false) }}
-          className={`border-r border-gray-200/80 bg-white py-3 shrink-0 flex flex-col transition-all duration-200 ease-in-out ${
-            isSidebarOpen ? 'w-56' : 'w-14'
+          className={`border-r border-gray-200/80 bg-white shrink-0 flex flex-col transition-all duration-200 ease-in-out overflow-hidden ${
+            isSidebarOpen ? 'w-60' : 'w-16'
           }`}>
-          <div className={`px-2 mb-3 flex ${isSidebarOpen ? 'justify-end' : 'justify-center'}`}>
-            <button
-              onClick={handleSidebarPinToggle}
-              className="p-2 rounded-xl text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-              title={sidebarPinned ? 'Unpin sidebar' : 'Pin sidebar open'}
-            >
-              {sidebarPinned ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </button>
-          </div>
+          <ScrollArea className="h-full">
+            <div className="py-3">
           <nav className="space-y-0.5 px-2">
             {sidebarItems.map(item => {
               const count = counts[item.folder]
@@ -1848,6 +2007,8 @@ export default function InboxPage() {
               )}
             </div>
           )}
+            </div>
+          </ScrollArea>
         </aside>
 
         {!isCalendarView && (
@@ -2063,22 +2224,28 @@ export default function InboxPage() {
                       <button onClick={() => handleRemoveLabel(selectedThread.id, label)} className="hover:text-red-500 ml-0.5 transition-colors"><X className="w-2.5 h-2.5" /></button>
                     </Badge>
                   ))}
-                  <div className="relative group">
-                    <button className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 rounded-full px-2.5 py-1 border border-dashed border-gray-300 hover:border-blue-400 transition-colors font-medium">
-                      <Tag className="w-2.5 h-2.5" /> Add label
-                    </button>
-                    <div className="absolute top-full left-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 z-20 hidden group-hover:block min-w-[160px]">
-                      {allUserLabels.filter(l => !getMeta(selectedThread.id).userLabels.includes(l)).map(label => (
-                        <button key={label} onClick={() => handleAddLabel(selectedThread.id, label)}
-                          className="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-slate-900 rounded-full px-2.5 py-1 border border-dashed border-gray-300 hover:border-slate-400 transition-colors font-medium">
+                        <Tag className="w-2.5 h-2.5" /> Add label
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48 rounded-xl border-gray-200 p-2">
+                      <DropdownMenuLabel className="text-xs text-gray-500">Apply a label</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {availableThreadLabels.map(label => (
+                        <DropdownMenuItem key={label} onClick={() => handleAddLabel(selectedThread.id, label)} className="rounded-lg text-sm">
+                          <Tag className="w-3.5 h-3.5 text-gray-400" />
                           {label}
-                        </button>
+                        </DropdownMenuItem>
                       ))}
-                      {allUserLabels.filter(l => !getMeta(selectedThread.id).userLabels.includes(l)).length === 0 && (
-                        <p className="px-4 py-2 text-xs text-gray-400">All labels applied</p>
+                      {availableThreadLabels.length === 0 && (
+                        <DropdownMenuItem disabled className="rounded-lg text-sm text-gray-400">
+                          All labels already applied
+                        </DropdownMenuItem>
                       )}
-                    </div>
-                  </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 {/* Tabs — Emails first (default), then Analysis */}
@@ -2168,9 +2335,9 @@ export default function InboxPage() {
                       </div>
                     ) : selectedAnalysis ? (
                       <>
-                        <SummarySection analysis={selectedAnalysis} />
+                        <SummarySection thread={selectedThread} analysis={selectedAnalysis} meta={getMeta(selectedThread.id)} />
                         <FollowUpSection needed={selectedAnalysis.followUpNeeded} suggestion={selectedAnalysis.followUpSuggestion} />
-                        <SmartRepliesSection replies={selectedAnalysis.smartReplies} onUseReply={handleUseReply} />
+                        <SmartRepliesSection thread={selectedThread} analysis={selectedAnalysis} onUseReply={handleUseReply} />
                         <DraftReplySection draft={selectedAnalysis.draftReply} />
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <MeetingsSection meetings={selectedAnalysis.meetings} isAuthenticated={isAuthenticated} />
