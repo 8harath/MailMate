@@ -31,7 +31,14 @@ The JSON must match this exact schema:
   "labels": ["label1", "label2"],
   "followUpNeeded": true/false,
   "followUpSuggestion": "suggestion or empty string",
-  "senderImportance": "vip" | "regular" | "unknown"
+  "senderImportance": "vip" | "regular" | "unknown",
+  "automationHints": {
+    "isAutomatedEmail": true/false,
+    "isNewsletter": true/false,
+    "requiresHumanResponse": true/false,
+    "suggestedAutoAction": "archive" | "reply_ack" | "snooze" | "none",
+    "confidenceScore": 0.0-1.0
+  }
 }
 
 Guidelines:
@@ -46,7 +53,13 @@ Guidelines:
 - labels: Suggest 2-4 short labels for organizing this email (e.g., "budget", "q2", "design-review", "client").
 - followUpNeeded: true if the latest email expects a response from the user.
 - followUpSuggestion: If follow-up needed, suggest when/how to follow up.
-- senderImportance: "vip" for executives/clients/key stakeholders, "regular" for known contacts, "unknown" for new senders.`,
+- senderImportance: "vip" for executives/clients/key stakeholders, "regular" for known contacts, "unknown" for new senders.
+- automationHints: Help decide what can be automated.
+  - isAutomatedEmail: true if sent by a bot, system, or no-reply address (newsletters, notifications, receipts, CI/CD alerts).
+  - isNewsletter: true if it's a newsletter, digest, or subscription email.
+  - requiresHumanResponse: true if the email is from a real person asking a question or expecting a reply. false for automated/broadcast emails.
+  - suggestedAutoAction: "archive" for spam/low-value, "reply_ack" for automated emails worth acknowledging, "snooze" for low-priority that might be relevant later, "none" if human attention needed.
+  - confidenceScore: 0.0-1.0 how confident you are in the automation suggestion. Use 0.9+ only when very clear.`,
     prompt: `Analyze this email thread:\n\nSubject: ${thread.subject}\nFrom: ${thread.from.name} <${thread.from.email}>\n\nThread:\n${emailContent}`,
   })
 
@@ -87,6 +100,15 @@ Guidelines:
       followUpNeeded: Boolean(result.followUpNeeded),
       followUpSuggestion: typeof result.followUpSuggestion === 'string' ? result.followUpSuggestion : '',
       senderImportance: ['vip', 'regular', 'unknown'].includes(result.senderImportance) ? result.senderImportance : 'regular',
+      automationHints: result.automationHints ? {
+        isAutomatedEmail: Boolean(result.automationHints.isAutomatedEmail),
+        isNewsletter: Boolean(result.automationHints.isNewsletter),
+        requiresHumanResponse: Boolean(result.automationHints.requiresHumanResponse),
+        suggestedAutoAction: ['archive', 'reply_ack', 'snooze', 'none'].includes(result.automationHints.suggestedAutoAction)
+          ? result.automationHints.suggestedAutoAction : 'none',
+        confidenceScore: typeof result.automationHints.confidenceScore === 'number'
+          ? Math.min(1, Math.max(0, result.automationHints.confidenceScore)) : 0.5,
+      } : undefined,
     }
   } catch {
     return {
