@@ -82,6 +82,7 @@ export interface ComprehensiveAnalysis {
   followUpNeeded: boolean
   followUpSuggestion: string
   senderImportance: 'vip' | 'regular' | 'unknown'
+  automationHints?: AutomationHints
 }
 
 // --- Thread State (user actions) ---
@@ -137,6 +138,7 @@ export type MemoryCategory =
   | 'priority_rule'
   | 'scheduling_preference'
   | 'writing_style'
+  | 'automation_rule'
   | 'general'
 
 export interface AgentMemoryEntry {
@@ -165,4 +167,59 @@ export interface CoordinatorResult {
   delegations: DelegationStep[]
   memoriesUsed: AgentMemoryEntry[]
   memoriesStored: { category: MemoryCategory; key: string; value: string }[]
+}
+
+// --- Automation Types ---
+
+export type ActionRiskLevel = 'auto' | 'confirm' | 'notify'
+
+export type AutomationActionType =
+  | 'auto_reply'
+  | 'auto_archive'
+  | 'auto_label'
+  | 'auto_mark_read'
+  | 'auto_calendar_add'
+  | 'auto_snooze'
+  | 'auto_task_extract'
+  | 'confirm_send_reply'
+  | 'confirm_calendar_external'
+  | 'confirm_trash'
+
+export interface AutomationAction {
+  id: string
+  threadId: string
+  type: AutomationActionType
+  riskLevel: ActionRiskLevel
+  status: 'pending' | 'approved' | 'rejected' | 'executed' | 'undone'
+  payload: Record<string, unknown>
+  reason: string
+  createdAt: string
+  executedAt?: string
+  threadSubject?: string
+  threadFrom?: EmailSender
+}
+
+export interface AutomationSettings {
+  enabled: boolean
+  autoReplyToAutomated: boolean
+  autoArchiveLowPriority: boolean
+  autoAddCalendarEvents: boolean
+  autoSnooze: boolean
+  autoLabel: boolean
+  autoExtractTasks: boolean
+  autoTriageOnLoad: boolean
+}
+
+export interface AutomationHints {
+  isAutomatedEmail: boolean
+  isNewsletter: boolean
+  requiresHumanResponse: boolean
+  suggestedAutoAction: 'archive' | 'reply_ack' | 'snooze' | 'none'
+  confidenceScore: number
+}
+
+export interface AutomationSummary {
+  totalAutoActions: number
+  pendingApprovals: number
+  recentActions: AutomationAction[]
 }
