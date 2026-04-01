@@ -2,6 +2,11 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { runEmailAssistant, runTriageAgent, runSchedulingAgent } from './agents'
 import { getMemories, storeMemory, deleteMemory } from './memory'
+import { classifyActions } from './automation-engine'
+import { executeAutoActions } from './automation-executor'
+import { saveActions, getAutomationSettings, getPendingApprovals, updateActionStatus } from './automation-store'
+import { executeAction } from './automation-executor'
+import { comprehensiveAnalyze } from './groq'
 import { Thread, MemoryCategory } from '@/types'
 
 const MEMORY_CATEGORIES: MemoryCategory[] = [
@@ -9,6 +14,7 @@ const MEMORY_CATEGORIES: MemoryCategory[] = [
   'priority_rule',
   'scheduling_preference',
   'writing_style',
+  'automation_rule',
   'general',
 ]
 
@@ -242,6 +248,94 @@ export function createCoordinatorTools(
           }
         } catch (err) {
           return { error: `Failed to delete: ${(err as Error).message}` }
+        }
+      },
+    }),
+
+    runAutomation: tool({
+      description:
+        'Run the automation engine on the current email thread. Analyzes the email, classifies actions by risk level, auto-executes safe actions (archive, label, calendar), and queues high-stakes actions for user approval. Use when the user asks to "handle this email", "automate my inbox", or "process this thread".',
+      parameters: z.object({
+        reason: z
+          .string()
+          .describe('Brief reason for running automation'),
+      }),
+      execute: async () => {
+        if (!accessToken || !thread) {
+          return {
+            error: 'Requires Gmail authentication and a selected email thread.',
+          }
+        }
+        try {
+          const analysis = await comprehensiveAnalyze(thread)
+          const settings = await getAutomationSettings(userId)
+          const actions = classifyActions(thread, analysis, userId, settings)
+          const processed = await executeAutoActions(actions, accessToken)
+          await saveActions(userId, processed)
+
+          const executed = processed.filter((a) => a.status === 'executed')
+          const pending = processed.filter(
+            (a) => a.status === 'pending' && a.riskLevel === 'confirm'
+          )
+
+          return {
+            executed: executed.map((a) => ({
+              type: a.type,
+              reason: a.reason,
+            })),
+            pendingApproval: pending.map((a) => ({
+              id: a.id,
+              type: a.type,
+              reason: a.reason,
+            })),
+            summary: `Auto-executed ${executed.length} action(s). ${pending.length} action(s) need your approval.`,
+          }
+        } catch (err) {
+          return { error: `Automation failed: ${(err as Error).message}` }
+        }
+      },
+    }),
+
+    approveAction: tool({
+      description:
+        'Approve or reject a pending automation action. Use when the user confirms ("yes", "go ahead", "send it", "approve") or rejects ("no", "don\'t send", "skip") a pending action shown to them.',
+      parameters: z.object({
+        actionId: z.string().describe('The ID of the pending action'),
+        decision: z
+          .enum(['approve', 'reject'])
+          .describe('Whether to approve or reject the action'),
+      }),
+      execute: async ({
+        actionId,
+        decision,
+      }: {
+        actionId: string
+        decision: 'approve' | 'reject'
+      }) => {
+        try {
+          if (decision === 'reject') {
+            await updateActionStatus(userId, actionId, 'rejected')
+            return { status: 'rejected' as const, actionId }
+          }
+
+          const pending = await getPendingApprovals(userId)
+          const action = pending.find((a) => a.id === actionId)
+          if (!action) {
+            return { error: 'Action not found or already processed.' }
+          }
+
+          if (!accessToken) {
+            return { error: 'Gmail authentication required to execute.' }
+          }
+
+          const { success, error } = await executeAction(action, accessToken)
+          if (success) {
+            await updateActionStatus(userId, actionId, 'executed')
+            return { status: 'executed' as const, actionId, type: action.type }
+          }
+          return { error: error ?? 'Execution failed.' }
+        } catch (err) {
+          return { error: `Approval failed: ${(err as Error).message}` }
         }
       },
     }),
