@@ -1,4 +1,6 @@
-# National 2026 Hackathon
+# MailMate
+
+This repository is the canonical GitHub repo for MailMate.
 
 This repository follows the hackathon submission format:
 
