@@ -49,8 +49,10 @@ import {
   Thread, ComprehensiveAnalysis, Priority, EmailCategory,
   EmailSender,
   AIChatMessage, ThreadMeta, SidebarFolder, RewriteAction,
-  DelegationStep, AgentMemoryEntry
+  DelegationStep, AgentMemoryEntry, AutomationAction
 } from '@/types'
+import { AutomationStatusBar } from '@/components/automation-status-bar'
+import { ApprovalQueue } from '@/components/approval-queue'
 
 // ─── Storage helpers ────────────────────────────────────────────
 
@@ -1682,6 +1684,14 @@ export default function InboxPage() {
   const [calendarDate, setCalendarDate] = useState<Date>(new Date())
   const filterRef = useRef<HTMLDivElement>(null)
 
+  // Automation state
+  const [automationRunning, setAutomationRunning] = useState(false)
+  const [autoExecutedCount, setAutoExecutedCount] = useState(0)
+  const [pendingActions, setPendingActions] = useState<AutomationAction[]>([])
+  const [recentActions, setRecentActions] = useState<AutomationAction[]>([])
+  const [showApprovalQueue, setShowApprovalQueue] = useState(false)
+  const automationRanRef = useRef(false)
+
   const getMeta = (id: string): ThreadMeta => metas[id] ?? defaultMeta
   const isSidebarOpen = sidebarPinned || sidebarExpanded
   const isCalendarView = folder === 'calendar'
@@ -1930,6 +1940,101 @@ export default function InboxPage() {
       fetchCalendarEvents()
     }
   }, [isAuthenticated, fetchGmailThreads, fetchCalendarEvents])
+
+  // Background auto-triage: run automation on fetched threads
+  const runBackgroundAutomation = useCallback(async (threadsToProcess: Thread[]) => {
+    if (!isAuthenticated || threadsToProcess.length === 0) return
+    setAutomationRunning(true)
+    try {
+      const res = await fetch('/api/automate/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threads: threadsToProcess.slice(0, 10) }),
+      })
+      if (!res.ok) throw new Error('Automation API failed')
+      const data = await res.json()
+
+      if (data.summary) {
+        setAutoExecutedCount(data.summary.totalAutoActions ?? 0)
+        const allActions: AutomationAction[] = data.actions ?? []
+        setPendingActions(allActions.filter((a: AutomationAction) => a.status === 'pending' && a.riskLevel === 'confirm'))
+        setRecentActions(allActions.filter((a: AutomationAction) => a.status !== 'pending'))
+
+        if (data.summary.totalAutoActions > 0) {
+          toast.success(`Auto-handled ${data.summary.totalAutoActions} action(s)`, {
+            description: data.summary.pendingApprovals > 0
+              ? `${data.summary.pendingApprovals} action(s) need your approval`
+              : undefined,
+          })
+        }
+        if (data.summary.pendingApprovals > 0) {
+          toast.info(`${data.summary.pendingApprovals} action(s) need your approval`, {
+            action: { label: 'Review', onClick: () => setShowApprovalQueue(true) },
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Background automation error:', err)
+    } finally {
+      setAutomationRunning(false)
+    }
+  }, [isAuthenticated])
+
+  // Fetch pending actions from the API
+  const fetchPendingActions = useCallback(async () => {
+    if (!isAuthenticated) return
+    try {
+      const res = await fetch('/api/automate/actions?type=all')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.pending) setPendingActions(data.pending)
+      if (data.recent) setRecentActions(data.recent)
+    } catch { /* silent */ }
+  }, [isAuthenticated])
+
+  // Approve/reject handlers for the queue
+  const handleApproveAction = useCallback(async (actionId: string) => {
+    try {
+      const res = await fetch('/api/automate/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionId, decision: 'approve' }),
+      })
+      if (!res.ok) throw new Error('Approval failed')
+      toast.success('Action approved and executed')
+      setPendingActions(prev => prev.filter(a => a.id !== actionId))
+      setAutoExecutedCount(prev => prev + 1)
+      fetchPendingActions()
+    } catch (err) {
+      toast.error('Failed to approve action')
+    }
+  }, [fetchPendingActions])
+
+  const handleRejectAction = useCallback(async (actionId: string) => {
+    try {
+      const res = await fetch('/api/automate/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionId, decision: 'reject' }),
+      })
+      if (!res.ok) throw new Error('Rejection failed')
+      toast.info('Action rejected')
+      setPendingActions(prev => prev.filter(a => a.id !== actionId))
+      fetchPendingActions()
+    } catch (err) {
+      toast.error('Failed to reject action')
+    }
+  }, [fetchPendingActions])
+
+  // Trigger background automation once after Gmail threads are loaded
+  useEffect(() => {
+    if (isAuthenticated && !isAuthLoading && threads.length > 0 && !automationRanRef.current) {
+      automationRanRef.current = true
+      runBackgroundAutomation(threads)
+      fetchPendingActions()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAuthLoading, threads.length])
 
   const handleSidebarPinToggle = useCallback(() => {
     setSidebarPinned(prev => {
@@ -2226,6 +2331,14 @@ export default function InboxPage() {
           )}
         </div>
       </header>
+
+      {/* Automation status bar */}
+      <AutomationStatusBar
+        autoExecuted={autoExecutedCount}
+        pendingCount={pendingActions.length}
+        isRunning={automationRunning}
+        onOpenQueue={() => setShowApprovalQueue(true)}
+      />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar — collapsed (icons only) by default, expands on hover */}
@@ -2807,6 +2920,17 @@ export default function InboxPage() {
           isAuthenticated={isAuthenticated}
           senderName={currentSenderName}
           onSent={handleNewComposeSent}
+        />
+      )}
+
+      {/* Automation approval queue */}
+      {showApprovalQueue && (
+        <ApprovalQueue
+          pendingActions={pendingActions}
+          recentActions={recentActions}
+          onApprove={handleApproveAction}
+          onReject={handleRejectAction}
+          onClose={() => setShowApprovalQueue(false)}
         />
       )}
     </div>
