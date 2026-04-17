@@ -1,4 +1,4 @@
-import { generateText } from 'ai'
+import { generateText, stepCountIs, StepResult, ToolSet } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createCoordinatorTools } from './coordinator-tools'
 import { formatMemoryContext, getMemories } from './memory'
@@ -7,10 +7,10 @@ import { Thread, AgentStep, CoordinatorResult, DelegationStep, MemoryCategory } 
 const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
 const MODEL = 'llama-3.3-70b-versatile'
 
-function formatSteps(steps: Awaited<ReturnType<typeof generateText>>['steps']): AgentStep[] {
+function formatSteps(steps: StepResult<ToolSet>[]): AgentStep[] {
   return steps.map((s) => ({
-    toolCalls: s.toolCalls?.map((tc) => ({ name: tc.toolName, args: tc.args as Record<string, unknown> })),
-    toolResults: s.toolResults?.map((tr) => ({ name: tr.toolName, result: tr.result as unknown })),
+    toolCalls: s.toolCalls?.map((tc) => ({ name: tc.toolName, args: tc.input as Record<string, unknown> })),
+    toolResults: s.toolResults?.map((tr) => ({ name: tr.toolName, result: tr.output as unknown })),
     text: s.text || undefined,
   }))
 }
@@ -116,7 +116,7 @@ Today's date: ${new Date().toISOString().split('T')[0]}`
       { role: 'user' as const, content: message },
     ],
     tools,
-    maxSteps: 8,
+    stopWhen: stepCountIs(8),
   })
 
   // Extract delegation info and stored memories from the steps
@@ -126,7 +126,7 @@ Today's date: ${new Date().toISOString().split('T')[0]}`
   for (const step of steps) {
     if (step.toolResults) {
       for (const tr of step.toolResults) {
-        const result = tr.result as Record<string, unknown>
+        const result = tr.output as Record<string, unknown>
         if (
           tr.toolName === 'delegateToEmailAssistant' ||
           tr.toolName === 'delegateToTriage' ||
@@ -160,7 +160,7 @@ Today's date: ${new Date().toISOString().split('T')[0]}`
 
   return {
     reply: text,
-    steps: formatSteps(steps),
+    steps: formatSteps(steps as unknown as StepResult<ToolSet>[]),
     delegations,
     memoriesUsed: memoriesUsed.length > 0 ? memoriesUsed : [],
     memoriesStored,

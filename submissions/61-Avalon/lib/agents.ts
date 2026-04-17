@@ -1,4 +1,4 @@
-import { generateText } from 'ai'
+import { generateText, stepCountIs, StepResult, ToolSet } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createAgentTools } from './agent-tools'
 import { Thread, AgentStep } from '@/types'
@@ -6,10 +6,10 @@ import { Thread, AgentStep } from '@/types'
 const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
 const MODEL = 'llama-3.3-70b-versatile'
 
-function formatSteps(steps: Awaited<ReturnType<typeof generateText>>['steps']): AgentStep[] {
+function formatSteps(steps: StepResult<ToolSet>[]): AgentStep[] {
   return steps.map((s) => ({
-    toolCalls: s.toolCalls?.map((tc) => ({ name: tc.toolName, args: tc.args as Record<string, unknown> })),
-    toolResults: s.toolResults?.map((tr) => ({ name: tr.toolName, result: tr.result as unknown })),
+    toolCalls: s.toolCalls?.map((tc) => ({ name: tc.toolName, args: tc.input as Record<string, unknown> })),
+    toolResults: s.toolResults?.map((tr) => ({ name: tr.toolName, result: tr.output as unknown })),
     text: s.text || undefined,
   }))
 }
@@ -76,12 +76,12 @@ Today's date: ${new Date().toISOString().split('T')[0]}`
       { role: 'user' as const, content: message },
     ],
     tools,
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   })
 
   return {
     reply: text,
-    steps: formatSteps(steps),
+    steps: formatSteps(steps as unknown as StepResult<ToolSet>[]),
   }
 }
 
@@ -107,10 +107,10 @@ ${memoryContext}
 Today's date: ${new Date().toISOString().split('T')[0]}`,
     prompt: 'Review my unread inbox and give me a triage summary with priorities and recommended actions.',
     tools,
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   })
 
-  return { summary: text, steps: formatSteps(steps) }
+  return { summary: text, steps: formatSteps(steps as unknown as StepResult<ToolSet>[]) }
 }
 
 // ─── Scheduling Agent ───────────────────────────────────────────
@@ -139,8 +139,8 @@ ${memoryContext}
 Today's date: ${new Date().toISOString().split('T')[0]}`,
     prompt: `Process this email thread for scheduling:\n\nSubject: ${thread.subject}\nFrom: ${thread.from.name} <${thread.from.email}>\n\n${emailContent}`,
     tools,
-    maxSteps: 6,
+    stopWhen: stepCountIs(6),
   })
 
-  return { reply: text, steps: formatSteps(steps) }
+  return { reply: text, steps: formatSteps(steps as unknown as StepResult<ToolSet>[]) }
 }
