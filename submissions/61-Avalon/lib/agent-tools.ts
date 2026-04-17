@@ -21,7 +21,7 @@ export function createAgentTools(accessToken: string) {
     searchInbox: tool({
       description:
         'Search the user\'s Gmail inbox. Supports Gmail search syntax (from:, subject:, after:, before:, has:attachment, is:unread, etc.).',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().describe('Gmail search query'),
       }),
       execute: async ({ query }: { query: string }) => {
@@ -48,7 +48,7 @@ export function createAgentTools(accessToken: string) {
     readThread: tool({
       description:
         'Read the full email content of a specific thread by its ID. Returns all messages with sender, body, and timestamp.',
-      parameters: z.object({
+      inputSchema: z.object({
         threadId: z.string().describe('The Gmail thread ID'),
       }),
       execute: async ({ threadId }: { threadId: string }) => {
@@ -96,7 +96,7 @@ export function createAgentTools(accessToken: string) {
     listCalendarEvents: tool({
       description:
         'List the user\'s upcoming calendar events to check availability and scheduling conflicts.',
-      parameters: z.object({
+      inputSchema: z.object({
         maxResults: z
           .number()
           .optional()
@@ -115,7 +115,7 @@ export function createAgentTools(accessToken: string) {
     createCalendarEvent: tool({
       description:
         'Create a new calendar event. Only use when the user has confirmed they want to create it.',
-      parameters: z.object({
+      inputSchema: z.object({
         title: z.string().describe('Event title'),
         date: z.string().describe('Date in YYYY-MM-DD format'),
         time: z.string().optional().describe('Start time in HH:mm format, omit for all-day'),
@@ -136,7 +136,7 @@ export function createAgentTools(accessToken: string) {
     draftReply: tool({
       description:
         'Compose a reply email draft. Returns the draft for the user to review — does NOT send it automatically.',
-      parameters: z.object({
+      inputSchema: z.object({
         to: z.string().describe('Recipient email address'),
         subject: z.string().describe('Email subject line'),
         body: z.string().describe('The full email body text'),
@@ -157,7 +157,7 @@ export function createAgentTools(accessToken: string) {
     sendEmail: tool({
       description:
         'Send an email through Gmail. ONLY use when the user has explicitly confirmed they want to send.',
-      parameters: z.object({
+      inputSchema: z.object({
         to: z.string().describe('Recipient email address'),
         subject: z.string().describe('Email subject'),
         body: z.string().describe('Email body text'),
@@ -176,7 +176,7 @@ export function createAgentTools(accessToken: string) {
     modifyThread: tool({
       description:
         'Modify a Gmail thread: mark as read, archive, star, or trash.',
-      parameters: z.object({
+      inputSchema: z.object({
         threadId: z.string().describe('The thread ID to modify'),
         action: z.enum(['read', 'archive', 'star', 'trash']).describe('The action to perform'),
       }),
