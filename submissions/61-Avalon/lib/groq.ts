@@ -8,10 +8,26 @@ const groq = createGroq({
 
 const MODEL = 'llama-3.3-70b-versatile'
 
+// Keep email content under ~24k chars (~6k tokens) to stay well within context limits
+const MAX_EMAIL_CONTENT_CHARS = 24_000
+const MAX_EMAIL_BODY_CHARS = 3_000
+
+function truncateEmailContent(content: string): string {
+  if (content.length <= MAX_EMAIL_CONTENT_CHARS) return content
+  return content.slice(0, MAX_EMAIL_CONTENT_CHARS) + '\n\n[Content truncated for analysis]'
+}
+
 export async function comprehensiveAnalyze(thread: Thread): Promise<ComprehensiveAnalysis> {
-  const emailContent = thread.emails
-    .map((e) => `From: ${e.from.name} <${e.from.email}>\nDate: ${e.timestamp}\n\n${e.body}`)
-    .join('\n\n---\n\n')
+  const emailContent = truncateEmailContent(
+    thread.emails
+      .map((e) => {
+        const body = e.body.length > MAX_EMAIL_BODY_CHARS
+          ? e.body.slice(0, MAX_EMAIL_BODY_CHARS) + '... [truncated]'
+          : e.body
+        return `From: ${e.from.name} <${e.from.email}>\nDate: ${e.timestamp}\n\n${body}`
+      })
+      .join('\n\n---\n\n')
+  )
 
   const { text } = await generateText({
     model: groq(MODEL),
@@ -61,6 +77,7 @@ Guidelines:
   - suggestedAutoAction: "archive" for spam/low-value, "reply_ack" for automated emails worth acknowledging, "snooze" for low-priority that might be relevant later, "none" if human attention needed.
   - confidenceScore: 0.0-1.0 how confident you are in the automation suggestion. Use 0.9+ only when very clear.`,
     prompt: `Analyze this email thread:\n\nSubject: ${thread.subject}\nFrom: ${thread.from.name} <${thread.from.email}>\n\nThread:\n${emailContent}`,
+    abortSignal: AbortSignal.timeout(30_000),
   })
 
   try {
@@ -134,6 +151,7 @@ export async function composeDraft(subject: string, context?: string): Promise<s
     model: groq(MODEL),
     system: 'You are a professional email assistant. Write a clear, professional email body based on the subject and context. Return ONLY the email body text.',
     prompt: `Write an email about: ${subject}${context ? `\n\nContext: ${context}` : ''}`,
+    abortSignal: AbortSignal.timeout(20_000),
   })
   return text.trim()
 }
@@ -155,6 +173,7 @@ export async function rewriteText(text: string, action: RewriteAction, senderNam
     model: groq(MODEL),
     system: `You are an email writing assistant. ${rewritePrompts[action]} The output must be a complete email body with greeting and sign-off. Return ONLY the rewritten email text. No explanations, no quotes, no prefixes like "Here is...".${nameInstructions}`,
     prompt: text,
+    abortSignal: AbortSignal.timeout(20_000),
   })
   return result.trim()
 }
@@ -168,6 +187,7 @@ export async function chatAboutThread(message: string, thread: Thread | null): P
     model: groq(MODEL),
     system: 'You are MailMate, an AI email assistant. Help users understand and respond to emails. Be concise and actionable.',
     prompt: `Email thread context:\nSubject: ${thread?.subject ?? 'None'}\n\n${emailContext}\n\nUser: ${message}`,
+    abortSignal: AbortSignal.timeout(20_000),
   })
   return text.trim()
 }
