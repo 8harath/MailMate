@@ -33,7 +33,7 @@ export function createCoordinatorTools(
     delegateToEmailAssistant: tool({
       description:
         'Delegate a task to the Email Assistant agent. Use for: drafting replies, searching inbox, sending emails, reading threads, managing threads (archive/star/trash), checking calendar, creating events. Pass a clear instruction describing what the assistant should do.',
-      parameters: z.object({
+      inputSchema: z.object({
         instruction: z
           .string()
           .describe('The specific task to delegate to the email assistant'),
@@ -66,7 +66,7 @@ export function createCoordinatorTools(
     delegateToTriage: tool({
       description:
         'Delegate inbox triage to the Triage agent. Use when the user asks to review their inbox, check what needs attention, prioritize emails, or get an overview of unread messages. Requires Gmail authentication.',
-      parameters: z.object({
+      inputSchema: z.object({
         reason: z
           .string()
           .describe('Brief reason for triggering triage'),
@@ -99,7 +99,7 @@ export function createCoordinatorTools(
     delegateToScheduler: tool({
       description:
         'Delegate scheduling tasks to the Scheduling agent. Use when the user asks about meetings, scheduling, time slots, calendar conflicts, or wants to coordinate a meeting. Requires a selected email thread and Gmail authentication.',
-      parameters: z.object({
+      inputSchema: z.object({
         reason: z
           .string()
           .describe('Brief reason for triggering the scheduler'),
@@ -143,7 +143,7 @@ export function createCoordinatorTools(
     queryMemory: tool({
       description:
         'Retrieve stored user preferences and learned behaviors from memory. Use this before taking actions to check if the user has preferences relevant to the task (e.g., tone, priority rules, scheduling preferences).',
-      parameters: z.object({
+      inputSchema: z.object({
         category: z
           .enum(MEMORY_CATEGORIES as [string, ...string[]])
           .optional()
@@ -181,7 +181,7 @@ export function createCoordinatorTools(
     storeMemory: tool({
       description:
         'Save a new user preference or update an existing one. Only store when the user EXPLICITLY states a preference (e.g., "always...", "I prefer...", "from now on...", "don\'t ever..."). Do NOT infer preferences from single interactions.',
-      parameters: z.object({
+      inputSchema: z.object({
         category: z
           .enum(MEMORY_CATEGORIES as [string, ...string[]])
           .describe('The category this preference falls under'),
@@ -235,7 +235,7 @@ export function createCoordinatorTools(
     deleteMemory: tool({
       description:
         'Remove a stored user preference. Use when the user says "forget that", "stop doing X", or "remove that preference".',
-      parameters: z.object({
+      inputSchema: z.object({
         memoryId: z
           .string()
           .describe('The ID of the memory entry to delete'),
@@ -255,7 +255,7 @@ export function createCoordinatorTools(
     runAutomation: tool({
       description:
         'Run the automation engine on the current email thread. Analyzes the email, classifies actions by risk level, auto-executes safe actions (archive, label, calendar), and queues high-stakes actions for user approval. Use when the user asks to "handle this email", "automate my inbox", or "process this thread".',
-      parameters: z.object({
+      inputSchema: z.object({
         reason: z
           .string()
           .describe('Brief reason for running automation'),
@@ -299,7 +299,7 @@ export function createCoordinatorTools(
     approveAction: tool({
       description:
         'Approve or reject a pending automation action. Use when the user confirms ("yes", "go ahead", "send it", "approve") or rejects ("no", "don\'t send", "skip") a pending action shown to them.',
-      parameters: z.object({
+      inputSchema: z.object({
         actionId: z.string().describe('The ID of the pending action'),
         decision: z
           .enum(['approve', 'reject'])
