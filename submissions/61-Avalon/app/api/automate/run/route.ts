@@ -6,6 +6,7 @@ import { classifyActions } from '@/lib/automation-engine'
 import { executeAutoActions } from '@/lib/automation-executor'
 import { saveActions, getAutomationSettings } from '@/lib/automation-store'
 import { Thread, ComprehensiveAnalysis, AutomationAction } from '@/types'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -13,6 +14,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'Authentication required for automation.' },
       { status: 401 }
+    )
+  }
+
+  const rl = checkRateLimit(`${session.user.email}:/api/automate/run`, RATE_LIMITS.automation)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many automation requests. Please wait before retrying.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+      }
     )
   }
 
