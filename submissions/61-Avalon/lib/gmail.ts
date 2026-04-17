@@ -36,8 +36,12 @@ function getHeader(headers: { name: string; value: string }[], name: string): st
 }
 
 function decodeBase64Url(data: string): string {
-  const base64 = data.replace(/-/g, '+').replace(/_/g, '/')
-  return Buffer.from(base64, 'base64').toString('utf-8')
+  try {
+    const base64 = data.replace(/-/g, '+').replace(/_/g, '/')
+    return Buffer.from(base64, 'base64').toString('utf-8')
+  } catch {
+    return ''
+  }
 }
 
 function extractBody(payload: GmailMessage['payload']): string {

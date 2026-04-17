@@ -3,6 +3,7 @@ import {
   sendEmail,
   archiveThread,
   markAsRead,
+  trashThread,
 } from './gmail'
 import { createCalendarEvent } from './google-calendar'
 
@@ -78,7 +79,7 @@ export async function executeAction(
       }
 
       case 'confirm_trash': {
-        // Not implemented in the top-5 automation — placeholder
+        await trashThread(accessToken, action.threadId)
         return { success: true }
       }
 
