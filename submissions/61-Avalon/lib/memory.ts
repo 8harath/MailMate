@@ -90,6 +90,7 @@ const CATEGORY_LABELS: Record<MemoryCategory, string> = {
   priority_rule: 'Priority Rule',
   scheduling_preference: 'Scheduling Preference',
   writing_style: 'Writing Style',
+  automation_rule: 'Automation Rule',
   general: 'General Preference',
 }
 
