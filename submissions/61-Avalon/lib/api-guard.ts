@@ -51,7 +51,7 @@ export async function guardRoute(
 
   if (rateLimit) {
     const key = `${session.user.email}:${request.nextUrl.pathname}`
-    const result = checkRateLimit(key, rateLimit)
+    const result = await checkRateLimit(key, rateLimit)
     if (!result.allowed) {
       return {
         ok: false,

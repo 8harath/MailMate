@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const rl = checkRateLimit(`${session.user.email}:/api/gmail/send`, RATE_LIMITS.send)
+  const rl = await checkRateLimit(`${session.user.email}:/api/gmail/send`, RATE_LIMITS.send)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Too many send requests. Please wait before sending another email.' },

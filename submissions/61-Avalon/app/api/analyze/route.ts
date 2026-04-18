@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const rateLimitKey = session?.user?.email
     ? `${session.user.email}:/api/analyze`
     : `anon:/api/analyze`
-  const rl = checkRateLimit(rateLimitKey, RATE_LIMITS.analysis)
+  const rl = await checkRateLimit(rateLimitKey, RATE_LIMITS.analysis)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Too many analysis requests. Please wait before retrying.' },

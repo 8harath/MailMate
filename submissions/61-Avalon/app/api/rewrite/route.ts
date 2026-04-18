@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const rateLimitKey = session?.user?.email
     ? `${session.user.email}:/api/rewrite`
     : `anon:/api/rewrite`
-  const rl = checkRateLimit(rateLimitKey, RATE_LIMITS.rewrite)
+  const rl = await checkRateLimit(rateLimitKey, RATE_LIMITS.rewrite)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Too many rewrite requests. Please wait a moment.' },

@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const rl = checkRateLimit(`${session.user.email}:/api/automate/run`, RATE_LIMITS.automation)
+  const rl = await checkRateLimit(`${session.user.email}:/api/automate/run`, RATE_LIMITS.automation)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Too many automation requests. Please wait before retrying.' },
