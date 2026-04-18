@@ -1,0 +1,206 @@
+# docker-compose.yml — MailMate full-stack definition
+#
+# OVERVIEW:
+#   Defines all six services needed to run MailMate in production:
+#     caddy         — Reverse proxy (port 80/443), TLS termination, gzip, security headers
+#     web           — Next.js 15 App Router (standalone build, port 3000 internal)
+#     agent-service — Python FastAPI + LangGraph multi-agent orchestration (port 8000 internal)
+#     postgres      — Primary database (Prisma schema + LangGraph checkpoints)
+#     redis         — Rate limiting (sliding-window Lua) + BullMQ automation queue
+#     worker        — BullMQ job consumer (async automation execution)
+#
+# NETWORKING:
+#   Two networks isolate traffic:
+#     frontend — caddy ↔ web (public traffic flows here)
+#     backend  — web ↔ agent-service ↔ postgres ↔ redis ↔ worker (internal only)
+#   agent-service is NOT on the frontend network — it's never directly reachable
+#   from outside the Docker network. All external traffic goes via caddy → web.
+#
+# HEALTHCHECKS:
+#   Every service has a healthcheck. The `depends_on: condition: service_healthy`
+#   directives ensure services start in the correct order:
+#     postgres, redis (healthy) → web, agent-service (healthy) → caddy (healthy)
+#   This prevents "connection refused" errors at startup.
+#
+# VOLUMES:
+#   pg-data    — Postgres data files (survives container restarts)
+#   redis-data — Redis RDB snapshots (60s save interval, min 1 change)
+#   caddy-data, caddy-config — Caddy TLS certificates and config cache
+#
+# SCALING:
+#   To run multiple web or agent-service replicas:
+#     docker compose up --scale web=3 --scale agent-service=2
+#   Sessions are stored in Postgres (JWT strategy) so web replicas are stateless.
+#   LangGraph checkpoints in Postgres allow any agent-service replica to resume
+#   an interrupted run (HITL flow works correctly across replicas).
+#
+# ENVIRONMENT:
+#   All services read from the .env file in the project root (env_file: .env).
+#   Copy .env.example to .env and fill in secrets before running.
+#   Never commit the .env file — it is gitignored.
+
+services:
+
+  # ── Caddy reverse proxy ──────────────────────────────────────────────────────
+  # Caddy sits in front of the web tier and handles:
+  #   - Port 80/443 binding (the only service with published ports)
+  #   - Automatic HTTPS when a real domain is configured in Caddyfile
+  #   - Gzip compression of responses
+  #   - Security headers for all /api/* routes
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro   # read-only: Caddy reloads on SIGHUP
+      - caddy-data:/data                        # TLS certificate storage
+      - caddy-config:/config                    # Caddy runtime config
+    depends_on:
+      web:
+        condition: service_healthy              # don't proxy to a web container that isn't ready
+    networks:
+      - frontend
+      - backend
+
+  # ── Next.js web application ──────────────────────────────────────────────────
+  # Built from submissions/61-Avalon/Dockerfile (multi-stage, standalone output).
+  # The standalone build copies only what's needed to run — no node_modules in
+  # the runner stage, which keeps the image ~200MB smaller.
+  web:
+    build:
+      context: ./submissions/61-Avalon
+      dockerfile: Dockerfile
+      target: runner                      # use the final minimal stage
+    restart: unless-stopped
+    env_file: .env                        # all secrets from .env
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      # Internal hostname of the agent-service (Docker DNS resolves "agent-service")
+      - AGENT_SERVICE_URL=http://agent-service:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s                   # give Next.js time to compile routes on first start
+    networks:
+      - frontend
+      - backend
+
+  # ── Python LangGraph agent service ───────────────────────────────────────────
+  # FastAPI + LangGraph StateGraphs. Handles all LLM calls, agent orchestration,
+  # Postgres-checkpointed runs, and HITL interrupts. Never exposed to the internet.
+  agent-service:
+    build:
+      context: ./agent-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}        # Postgres for LangGraph checkpoints
+      - REDIS_URL=${REDIS_URL}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - AGENT_SERVICE_TOKEN=${AGENT_SERVICE_TOKEN}
+      # Callback URL for Gmail/Calendar tool calls back to the web BFF
+      - WEB_CALLBACK_URL=http://web:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - backend                            # backend only — not reachable from internet
+
+  # ── Postgres 16 ───────────────────────────────────────────────────────────────
+  # Primary data store for:
+  #   - All Prisma schema tables (users, memories, analyses, automation, etc.)
+  #   - NextAuth sessions (if strategy changes from JWT to database)
+  #   - LangGraph checkpoints (langgraph.* schema, created by PostgresSaver.setup())
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mailmate}
+      POSTGRES_USER: ${POSTGRES_USER:-mailmate}
+      # Fail fast if password is not set — never use a default for secrets in prod
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - pg-data:/var/lib/postgresql/data   # persist data across container restarts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mailmate}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  # ── Redis 7 ───────────────────────────────────────────────────────────────────
+  # Backing store for:
+  #   - Rate limiting (sliding-window sorted sets, one per user+route key)
+  #   - BullMQ automation job queue (lists + hash metadata)
+  # save 60 1 = persist to disk every 60s if at least 1 key changed (RDB snapshot)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data                   # RDB snapshots survive restarts
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend
+
+  # ── BullMQ automation worker ──────────────────────────────────────────────────
+  # Runs the same Next.js standalone build as `web` but executes worker.js
+  # instead of server.js. Consumes jobs from the BullMQ "automation" queue.
+  # Scale independently from web: docker compose up --scale worker=2
+  worker:
+    build:
+      context: ./submissions/61-Avalon
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    command: ["node", "worker.js"]         # override CMD from Dockerfile
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=${REDIS_URL}
+      - AGENT_SERVICE_URL=http://agent-service:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
+# ── Named volumes ──────────────────────────────────────────────────────────────
+volumes:
+  pg-data:      # Postgres data directory
+  redis-data:   # Redis RDB snapshot files
+  caddy-data:   # Caddy TLS certificates (Let's Encrypt)
+  caddy-config: # Caddy runtime configuration cache
+
+# ── Networks ───────────────────────────────────────────────────────────────────
+networks:
+  frontend:   # caddy ↔ web — public traffic
+  backend:    # all internal service communication
