@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main, enterprise]
+  pull_request:
+    branches: [main, enterprise]
+
+jobs:
+
+  # ── Web (Next.js) ────────────────────────────────────────────────────────────
+  web:
+    name: Web — lint / typecheck / test / build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: submissions/61-Avalon
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: submissions/61-Avalon/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test -- --reporter=verbose
+        env:
+          CI: true
+
+      - name: Build
+        run: npm run build
+        env:
+          GROQ_API_KEY: placeholder
+          GOOGLE_CLIENT_ID: placeholder
+          GOOGLE_CLIENT_SECRET: placeholder
+          NEXTAUTH_SECRET: placeholder-secret-32-chars-long!!
+          NEXTAUTH_URL: http://localhost
+
+  # ── Agent service (Python) ───────────────────────────────────────────────────
+  agent-service:
+    name: Agent service — lint / typecheck / test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dev dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Tests
+        run: pytest tests/ -v --tb=short
+        env:
+          GROQ_API_KEY: test-key
+          AGENT_SERVICE_TOKEN: ""
+
+  # ── Docker build validation ──────────────────────────────────────────────────
+  docker:
+    name: Docker build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose config
+        run: docker compose config --quiet
+
+      - name: Build web image
+        run: docker build submissions/61-Avalon --target runner -t mailmate-web:ci
+
+      - name: Build agent-service image
+        run: docker build agent-service -t mailmate-agent:ci
