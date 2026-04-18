@@ -1,0 +1,76 @@
+# Caddyfile — MailMate reverse proxy configuration
+#
+# Caddy sits in front of the Next.js web container and provides:
+#   - Reverse proxy: all traffic → web:3000 (Docker internal DNS)
+#   - Gzip compression: reduces response size for JSON and HTML
+#   - Security headers on /api/* routes (matches vercel.json parity)
+#   - Server header removal (don't leak Caddy version to clients)
+#
+# LOCAL DEVELOPMENT (auto_https off):
+#   The global block disables automatic HTTPS and the admin API.
+#   Traffic is served on port 80 only (HTTP).
+#   This is safe for local Docker Compose usage behind a trusted network.
+#
+# PRODUCTION (enabling HTTPS):
+#   To enable automatic TLS via Let's Encrypt, replace the `:80` block with:
+#
+#     your.domain.com {
+#       reverse_proxy web:3000
+#       encode gzip
+#       header /api/* {
+#         X-Content-Type-Options nosniff
+#         X-Frame-Options DENY
+#         Referrer-Policy strict-origin-when-cross-origin
+#         -Server
+#       }
+#     }
+#
+#   Also remove the `auto_https off` line from the global block.
+#   Caddy will obtain and renew Let's Encrypt certificates automatically.
+#   The caddy-data volume in docker-compose.yml persists certificates across restarts.
+#
+# SECURITY HEADERS:
+#   Applied only to /api/* to avoid conflicting with Next.js page headers.
+#   X-Content-Type-Options: prevents MIME-type sniffing attacks
+#   X-Frame-Options: prevents clickjacking (no iframe embedding)
+#   Referrer-Policy: limits referrer info sent cross-origin
+#   -Server: removes the "Server: Caddy" header (information disclosure)
+#
+# SCALING:
+#   When running multiple web replicas (docker compose up --scale web=3),
+#   replace `reverse_proxy web:3000` with:
+#     reverse_proxy web_1:3000 web_2:3000 web_3:3000
+#   or use Docker Swarm/Kubernetes ingress which handles load balancing at
+#   the orchestration layer.
+
+{
+  # Disable the Caddy admin API (not needed in this deployment)
+  admin off
+  # Disable automatic HTTPS — required for HTTP-only local setup
+  # Remove this line in production when pointing at a real domain
+  auto_https off
+}
+
+:80 {
+  # Compress responses with gzip — reduces bandwidth for JSON API responses
+  # and HTML pages. Caddy only compresses if the client sends Accept-Encoding: gzip
+  encode gzip
+
+  # Security headers on all /api/* routes (same as vercel.json headers config)
+  header /api/* {
+    X-Content-Type-Options nosniff
+    X-Frame-Options DENY
+    Referrer-Policy strict-origin-when-cross-origin
+    # Remove the Server header to avoid disclosing Caddy version
+    -Server
+  }
+
+  # Remove Server header from all other responses too
+  header * {
+    -Server
+  }
+
+  # Forward all traffic to the Next.js container
+  # Docker's internal DNS resolves "web" to the web container's IP
+  reverse_proxy web:3000
+}
