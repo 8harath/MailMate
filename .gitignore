@@ -4,14 +4,15 @@
 
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
 
 # Next.js build output
 .next/
 out/
-
-# Production and build artifacts
 build/
 *.tsbuildinfo
+next-env.d.ts.bak
 
 # Logs
 npm-debug.log*
@@ -19,9 +20,20 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Environment files
+# Environment files (keep .env.example tracked)
 .env
-.env.*
+.env*.local
+
+# Testing / coverage
+coverage/
 
 # Vercel
 .vercel/
+
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+next.user-config.*

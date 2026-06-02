@@ -1,0 +1,93 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { comprehensiveAnalyze } from '@/lib/groq'
+import { classifyActions } from '@/lib/automation-engine'
+import { executeAutoActions } from '@/lib/automation-executor'
+import { saveActions, getAutomationSettings } from '@/lib/automation-store'
+import { Thread, ComprehensiveAnalysis, AutomationAction } from '@/types'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { parseBody, automateRunSchema } from '@/lib/validation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('automate/run')
+
+export async function POST(request: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.accessToken || !session?.user?.email) {
+    return NextResponse.json(
+      { error: 'Authentication required for automation.' },
+      { status: 401 }
+    )
+  }
+
+  const rl = checkRateLimit(`${session.user.email}:/api/automate/run`, RATE_LIMITS.automation)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many automation requests. Please wait before retrying.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+      }
+    )
+  }
+
+  const userId = session.user.email
+  const accessToken = session.accessToken
+
+  const parsed = await parseBody(request, automateRunSchema)
+  if (!parsed.ok) return parsed.response
+  const threads = parsed.data.threads as unknown as Thread[]
+  const analyses = parsed.data.analyses as Record<string, ComprehensiveAnalysis> | undefined
+
+  const settings = await getAutomationSettings(userId)
+  if (!settings.enabled) {
+    return NextResponse.json({
+      message: 'Automation is disabled.',
+      actions: [],
+      summary: { totalAutoActions: 0, pendingApprovals: 0, recentActions: [] },
+    })
+  }
+
+  const allActions: AutomationAction[] = []
+
+  // Process each thread: analyze if not already analyzed, then classify
+  for (const thread of threads.slice(0, 10)) {
+    try {
+      let analysis = analyses?.[thread.id]
+
+      if (!analysis) {
+        analysis = await comprehensiveAnalyze(thread)
+      }
+
+      const actions = classifyActions(thread, analysis, userId, settings)
+      allActions.push(...actions)
+    } catch (err) {
+      log.error(`automation failed for thread ${thread.id}`, err)
+    }
+  }
+
+  // Execute auto and notify tier actions
+  const processed = await executeAutoActions(allActions, accessToken)
+
+  // Persist all actions to the store. A persistence failure is logged but does
+  // not fail the request — the executed actions have already taken effect.
+  const persisted = await saveActions(userId, processed)
+  if (!persisted) {
+    log.warn('failed to persist automation actions to the store')
+  }
+
+  const executed = processed.filter((a) => a.status === 'executed')
+  const pending = processed.filter(
+    (a) => a.status === 'pending' && a.riskLevel === 'confirm'
+  )
+
+  return NextResponse.json({
+    actions: processed,
+    summary: {
+      totalAutoActions: executed.length,
+      pendingApprovals: pending.length,
+      recentActions: processed.slice(0, 20),
+    },
+  })
+}
