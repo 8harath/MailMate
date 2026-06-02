@@ -21,8 +21,8 @@ const securityFeatures = [
   },
   {
     icon: FileCheck,
-    title: "No server-side caching",
-    description: "AI analysis runs on demand. No email data is stored on any server — results live in your browser and disappear when you clear them.",
+    title: "You own the data path",
+    description: "MailMate runs on infrastructure you deploy. Without a database configured, results live only in your browser; with optional Supabase, they are cached in your own database — never a third party's.",
   },
 ];
 

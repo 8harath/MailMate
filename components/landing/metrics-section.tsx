@@ -46,19 +46,7 @@ function AnimatedCounter({ end, suffix = "", prefix = "" }: { end: number; suffi
 
 const metrics = [
   {
-    value: 73,
-    suffix: "%",
-    prefix: "",
-    label: "reduction in time spent reading email threads",
-  },
-  {
-    value: 2,
-    suffix: "s",
-    prefix: "<",
-    label: "average AI analysis response time per thread",
-  },
-  {
-    value: 12,
+    value: 11,
     suffix: "+",
     prefix: "",
     label: "data points extracted from every email analysis",
@@ -67,7 +55,19 @@ const metrics = [
     value: 100,
     suffix: "%",
     prefix: "",
-    label: "of actions require human approval before sending",
+    label: "of outbound actions require human approval before sending",
+  },
+  {
+    value: 3,
+    suffix: "",
+    prefix: "",
+    label: "specialized AI agents for triage, scheduling, and drafting",
+  },
+  {
+    value: 8,
+    suffix: "",
+    prefix: "",
+    label: "inbox views kept in sync with Gmail",
   },
 ];
 
@@ -101,7 +101,7 @@ export function MetricsSection() {
           <div>
             <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-6">
               <span className="w-8 h-px bg-foreground/30" />
-              Product metrics
+              By design
             </span>
             <h2
               className={`text-4xl lg:text-6xl font-display tracking-tight transition-all duration-700 ${

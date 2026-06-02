@@ -1,12 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { AnimatedWave } from "./animated-wave";
+
+const REPO_URL = "https://github.com/8harath/MailMate";
 
 type FooterLink = {
   name: string;
   href: string;
-  badge?: string;
+  external?: boolean;
 };
 
 const footerLinks: Record<string, FooterLink[]> = {
@@ -15,49 +18,38 @@ const footerLinks: Record<string, FooterLink[]> = {
     { name: "How it works", href: "#how-it-works" },
     { name: "Pricing", href: "#pricing" },
     { name: "Integrations", href: "#integrations" },
+    { name: "Security", href: "#security" },
   ],
   Resources: [
-    { name: "Documentation", href: "#developers" },
-    { name: "API reference", href: "#developers" },
-    { name: "Security", href: "#security" },
-    { name: "Changelog", href: "#features" },
-  ],
-  Company: [
-    { name: "About", href: "#" },
-    { name: "Blog", href: "#" },
-    { name: "Careers", href: "#", badge: "Hiring" },
-    { name: "Contact", href: "#" },
-  ],
-  Legal: [
-    { name: "Privacy policy", href: "#" },
-    { name: "Terms of service", href: "#" },
-    { name: "Cookie policy", href: "#" },
+    { name: "Documentation", href: `${REPO_URL}#readme`, external: true },
+    { name: "Architecture", href: `${REPO_URL}/blob/main/docs/ARCHITECTURE.md`, external: true },
+    { name: "Changelog", href: `${REPO_URL}/blob/main/CHANGELOG.md`, external: true },
+    { name: "Report an issue", href: `${REPO_URL}/issues`, external: true },
+    { name: "Open demo inbox", href: "/inbox" },
   ],
 };
 
-const socialLinks = [
-  { name: "Twitter", href: "#" },
-  { name: "GitHub", href: "#" },
-  { name: "Discord", href: "#" },
-];
+const socialLinks = [{ name: "GitHub", href: REPO_URL, external: true }];
 
 export function FooterSection() {
+  const year = new Date().getFullYear();
+
   return (
     <footer className="relative border-t border-foreground/10">
       {/* Animated wave background */}
       <div className="absolute inset-0 h-64 opacity-20 pointer-events-none overflow-hidden">
         <AnimatedWave />
       </div>
-      
+
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12">
         {/* Main Footer */}
         <div className="py-10 lg:py-14">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-12 lg:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 lg:gap-8">
             {/* Brand Column */}
             <div className="col-span-2">
-              <a href="#" className="inline-flex items-center gap-2 mb-6">
+              <Link href="/" className="inline-flex items-center gap-2 mb-6">
                 <span className="text-2xl font-display"><span className="font-black">M</span>ail<span className="font-black">M</span>ate</span>
-              </a>
+              </Link>
 
               <p className="text-muted-foreground leading-relaxed mb-8 max-w-xs">
                 AI-powered email triage with Google sign-in, inbox analysis, editable drafts, and approval-first workflow actions.
@@ -69,6 +61,7 @@ export function FooterSection() {
                   <a
                     key={link.name}
                     href={link.href}
+                    {...(link.external ? { target: "_blank", rel: "noreferrer" } : {})}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 group"
                   >
                     {link.name}
@@ -87,14 +80,10 @@ export function FooterSection() {
                     <li key={link.name}>
                       <a
                         href={link.href}
+                        {...(link.external ? { target: "_blank", rel: "noreferrer" } : {})}
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2"
                       >
                         {link.name}
-                        {"badge" in link && link.badge && (
-                          <span className="text-xs px-2 py-0.5 bg-foreground text-background rounded-full">
-                            {link.badge}
-                          </span>
-                        )}
                       </a>
                     </li>
                   ))}
@@ -107,14 +96,19 @@ export function FooterSection() {
         {/* Bottom Bar */}
         <div className="py-8 border-t border-foreground/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            &copy; 2026 MailMate. All rights reserved.
+            &copy; {year} MailMate. MIT licensed.
           </p>
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2">
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 hover:text-foreground transition-colors"
+            >
               <span className="w-2 h-2 rounded-full bg-green-500" />
-              All systems operational
-            </span>
+              Open source on GitHub
+            </a>
           </div>
         </div>
       </div>
