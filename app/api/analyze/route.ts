@@ -5,6 +5,7 @@ import { comprehensiveAnalyze } from '@/lib/groq'
 import { mockThreads } from '@/data/emails'
 import { Thread } from '@/types'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { parseBody, analyzeSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   // Rate limit: authenticated users by email, anonymous by route
@@ -23,13 +24,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const body = await request.json()
-  const { threadId, thread: inlineThread } = body
+  const parsed = await parseBody(request, analyzeSchema)
+  if (!parsed.ok) return parsed.response
+  const { threadId, thread: inlineThread } = parsed.data
 
   let thread: Thread | undefined
-  if (inlineThread && inlineThread.id && Array.isArray(inlineThread.emails)) {
-    thread = inlineThread as Thread
-  } else if (threadId && typeof threadId === 'string') {
+  if (inlineThread) {
+    thread = inlineThread as unknown as Thread
+  } else if (threadId) {
     thread = mockThreads.find((t) => t.id === threadId)
   }
 

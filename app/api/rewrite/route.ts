@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { rewriteText } from '@/lib/groq'
-import { RewriteAction } from '@/types'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
-
-const validActions: RewriteAction[] = ['formalize', 'shorten', 'elaborate', 'fix-grammar']
+import { parseBody, rewriteSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -23,25 +21,15 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { text, action, senderName, recipientName } = await request.json()
-
-  if (!text || typeof text !== 'string' || !text.trim()) {
-    return NextResponse.json({ error: 'Text is required' }, { status: 400 })
-  }
-  if (!validActions.includes(action)) {
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, rewriteSchema)
+  if (!parsed.ok) return parsed.response
+  const { text, action, senderName, recipientName } = parsed.data
 
   const MAX_TEXT_LENGTH = 8000
   const truncatedText = text.length > MAX_TEXT_LENGTH ? text.slice(0, MAX_TEXT_LENGTH) : text
 
   try {
-    const result = await rewriteText(
-      truncatedText,
-      action,
-      typeof senderName === 'string' ? senderName : undefined,
-      typeof recipientName === 'string' ? recipientName : undefined
-    )
+    const result = await rewriteText(truncatedText, action, senderName, recipientName)
     return NextResponse.json({ text: result })
   } catch (error) {
     console.error('[rewrite] error:', error instanceof Error ? error.message : error)

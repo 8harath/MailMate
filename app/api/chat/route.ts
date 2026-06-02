@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { chatAboutThread } from '@/lib/groq'
 import { mockThreads } from '@/data/emails'
 import { Thread } from '@/types'
+import { parseBody, chatSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
-  const { message, threadId, thread: inlineThread } = await request.json()
-
-  if (!message || typeof message !== 'string' || !message.trim()) {
-    return NextResponse.json({ error: 'Message is required' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, chatSchema)
+  if (!parsed.ok) return parsed.response
+  const { message, threadId, thread: inlineThread } = parsed.data
 
   let thread: Thread | null = null
-  if (inlineThread && inlineThread.id && inlineThread.emails) {
-    thread = inlineThread as Thread
+  if (inlineThread) {
+    thread = inlineThread as unknown as Thread
   } else if (threadId) {
     thread = mockThreads.find((t) => t.id === threadId) ?? null
   }
