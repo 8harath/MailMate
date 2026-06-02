@@ -1,5 +1,8 @@
 import { supabaseAdmin } from './supabase'
 import { AgentMemoryEntry, MemoryCategory } from '@/types'
+import { createLogger } from './logger'
+
+const log = createLogger('memory')
 
 // ─── CRUD for agent_memory table ──────────────────────────────
 
@@ -22,7 +25,7 @@ export async function getMemories(
 
   const { data, error } = await query
   if (error) {
-    console.error('getMemories error:', error)
+    log.error('getMemories failed', error)
     return []
   }
   return (data ?? []) as AgentMemoryEntry[]
@@ -58,7 +61,7 @@ export async function storeMemory(
     .single()
 
   if (error) {
-    console.error('storeMemory error:', error)
+    log.error('storeMemory failed', error)
     return null
   }
   return data as AgentMemoryEntry
@@ -77,7 +80,7 @@ export async function deleteMemory(
     .eq('user_id', userId)
 
   if (error) {
-    console.error('deleteMemory error:', error)
+    log.error('deleteMemory failed', error)
     return false
   }
   return true

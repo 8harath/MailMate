@@ -1,14 +1,21 @@
 import { supabaseAdmin } from './supabase'
 import { AutomationAction, AutomationSettings } from '@/types'
 import { DEFAULT_SETTINGS } from './automation-engine'
+import { createLogger } from './logger'
+
+const log = createLogger('automation-store')
 
 // ─── Action queue persistence ─────────────────────────────────
+//
+// Writers return `true` on success (including the no-op case when Supabase is
+// not configured) and `false` when a configured call fails, so callers can
+// surface the failure rather than assume the write landed.
 
 export async function saveActions(
   userId: string,
   actions: AutomationAction[]
-): Promise<void> {
-  if (!supabaseAdmin || actions.length === 0) return
+): Promise<boolean> {
+  if (!supabaseAdmin || actions.length === 0) return true
 
   const rows = actions.map((a) => ({
     id: a.id,
@@ -29,7 +36,11 @@ export async function saveActions(
     .from('automation_actions')
     .upsert(rows, { onConflict: 'id' })
 
-  if (error) console.error('saveActions error:', error)
+  if (error) {
+    log.error('saveActions failed', error)
+    return false
+  }
+  return true
 }
 
 export async function getActions(
@@ -50,7 +61,7 @@ export async function getActions(
 
   const { data, error } = await query
   if (error) {
-    console.error('getActions error:', error)
+    log.error('getActions failed', error)
     return []
   }
 
@@ -67,8 +78,8 @@ export async function updateActionStatus(
   userId: string,
   actionId: string,
   status: 'approved' | 'rejected' | 'executed' | 'undone'
-): Promise<void> {
-  if (!supabaseAdmin) return
+): Promise<boolean> {
+  if (!supabaseAdmin) return true
 
   const update: Record<string, unknown> = { status }
   if (status === 'executed') update.executed_at = new Date().toISOString()
@@ -79,7 +90,11 @@ export async function updateActionStatus(
     .eq('id', actionId)
     .eq('user_id', userId)
 
-  if (error) console.error('updateActionStatus error:', error)
+  if (error) {
+    log.error('updateActionStatus failed', error)
+    return false
+  }
+  return true
 }
 
 export async function getRecentActions(
@@ -97,7 +112,7 @@ export async function getRecentActions(
     .limit(limit)
 
   if (error) {
-    console.error('getRecentActions error:', error)
+    log.error('getRecentActions failed', error)
     return []
   }
 
@@ -124,8 +139,8 @@ export async function getAutomationSettings(
 export async function saveAutomationSettings(
   userId: string,
   settings: AutomationSettings
-): Promise<void> {
-  if (!supabaseAdmin) return
+): Promise<boolean> {
+  if (!supabaseAdmin) return true
 
   const { error } = await supabaseAdmin
     .from('automation_settings')
@@ -138,7 +153,11 @@ export async function saveAutomationSettings(
       { onConflict: 'user_id' }
     )
 
-  if (error) console.error('saveAutomationSettings error:', error)
+  if (error) {
+    log.error('saveAutomationSettings failed', error)
+    return false
+  }
+  return true
 }
 
 // ─── Row mapper ───────────────────────────────────────────────

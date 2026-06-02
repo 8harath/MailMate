@@ -1,4 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createLogger } from './logger'
+
+const log = createLogger('supabase')
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -17,24 +20,36 @@ if (supabaseUrl && supabaseAnonKey) {
 
 export { supabase, supabaseAdmin }
 
-// ─── Database helpers (no-op when Supabase not configured) ──────
+// ─── Database helpers ──────────────────────────────────────────
+//
+// Writers return `true` on success (including the no-op case when Supabase is
+// not configured, since there is nothing to persist) and `false` when a
+// configured Supabase call actually fails, so callers can surface the failure.
 
-export async function upsertUser(user: { id: string; email: string; name: string; image?: string }) {
-  if (!supabaseAdmin) return
+export async function upsertUser(user: { id: string; email: string; name: string; image?: string }): Promise<boolean> {
+  if (!supabaseAdmin) return true
   const { error } = await supabaseAdmin.from('users').upsert({
     id: user.id, email: user.email, name: user.name,
     avatar_url: user.image ?? null, updated_at: new Date().toISOString(),
   }, { onConflict: 'id' })
-  if (error) console.error('upsertUser error:', error)
+  if (error) {
+    log.error('upsertUser failed', error)
+    return false
+  }
+  return true
 }
 
-export async function saveAnalysis(userId: string, threadId: string, gmailThreadId: string, analysis: Record<string, unknown>) {
-  if (!supabaseAdmin) return
+export async function saveAnalysis(userId: string, threadId: string, gmailThreadId: string, analysis: Record<string, unknown>): Promise<boolean> {
+  if (!supabaseAdmin) return true
   const { error } = await supabaseAdmin.from('analyses').upsert({
     user_id: userId, thread_id: threadId, gmail_thread_id: gmailThreadId,
     analysis_data: analysis, updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,thread_id' })
-  if (error) console.error('saveAnalysis error:', error)
+  if (error) {
+    log.error('saveAnalysis failed', error)
+    return false
+  }
+  return true
 }
 
 export async function getAnalysis(userId: string, threadId: string) {
@@ -44,12 +59,16 @@ export async function getAnalysis(userId: string, threadId: string) {
   return data?.analysis_data ?? null
 }
 
-export async function saveThreadMeta(userId: string, threadId: string, meta: Record<string, unknown>) {
-  if (!supabaseAdmin) return
+export async function saveThreadMeta(userId: string, threadId: string, meta: Record<string, unknown>): Promise<boolean> {
+  if (!supabaseAdmin) return true
   const { error } = await supabaseAdmin.from('thread_meta').upsert({
     user_id: userId, thread_id: threadId, ...meta, updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,thread_id' })
-  if (error) console.error('saveThreadMeta error:', error)
+  if (error) {
+    log.error('saveThreadMeta failed', error)
+    return false
+  }
+  return true
 }
 
 export async function getThreadMetas(userId: string) {
@@ -67,12 +86,16 @@ export async function getUserLabels(userId: string) {
 export async function createUserLabel(userId: string, name: string) {
   if (!supabaseAdmin) return null
   const { data, error } = await supabaseAdmin.from('user_labels').insert({ user_id: userId, name }).select().single()
-  if (error) console.error('createUserLabel error:', error)
+  if (error) log.error('createUserLabel failed', error)
   return data
 }
 
-export async function deleteUserLabel(userId: string, labelId: string) {
-  if (!supabaseAdmin) return
+export async function deleteUserLabel(userId: string, labelId: string): Promise<boolean> {
+  if (!supabaseAdmin) return true
   const { error } = await supabaseAdmin.from('user_labels').delete().eq('id', labelId).eq('user_id', userId)
-  if (error) console.error('deleteUserLabel error:', error)
+  if (error) {
+    log.error('deleteUserLabel failed', error)
+    return false
+  }
+  return true
 }
