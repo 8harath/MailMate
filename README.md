@@ -1,159 +1,161 @@
 # MailMate
 
-MailMate is an AI-powered email workspace built by Team 61 (`Avalon`) for NH26. It combines Gmail, Google Calendar, drafting tools, inbox triage, and a multi-agent assistant into a single Next.js application.
+**An AI-powered email workspace.** MailMate connects to Gmail and Google Calendar, analyzes your threads with Groq (LLaMA 3.3 70B), drafts and rewrites replies, and runs an **approval-gated** multi-agent assistant — all in a single Next.js app.
 
-The active app for this repository lives in `submissions/61-Avalon`.
+It also ships with a **demo mode**: open it without signing in and explore every feature against realistic sample data.
 
-## What MailMate Does
+> Built with Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Groq · NextAuth · Supabase (optional)
 
-- Connects to Gmail with Google OAuth and works with real inbox data
-- Falls back to demo data when Google is not connected, so the UI is still explorable locally
-- Analyzes email threads with Groq-powered AI to produce summaries, priorities, categories, tasks, deadlines, meetings, and reply suggestions
-- Provides a coordinator-style assistant that can chat over the current thread, use learned preferences, and delegate work to specialized agents
-- Automates safe inbox actions such as labeling, marking read, snoozing, archiving, task extraction, and calendar creation, while sending higher-risk actions into an approval queue
-- Syncs calendar events and supports creating events from detected meeting details
-- Lets users compose, rewrite, and send email replies from inside the app
+---
 
-## Current Product Scope
+## Highlights
 
-MailMate is more than a landing page plus inbox mockup. The current codebase includes:
+- **Gmail integration** — read, send, label, star, archive, and trash real threads
+- **AI thread analysis** — summary, priority, category, tasks, deadlines, meetings, key info, and smart replies in one click
+- **AI writing tools** — fix grammar, formalize, shorten, or elaborate any draft
+- **Multi-agent coordinator** — delegates to triage, scheduling, and email-assistant agents
+- **Approval-gated automation** — low-risk actions auto-apply; anything that leaves your account waits for your confirmation
+- **Google Calendar** — browse events and create them from detected meetings
+- **Optional persistence** — bring Supabase for stored analyses, labels, agent memory, and automation history; without it, the app degrades gracefully to local storage
 
-- Gmail thread fetch, send, and modify routes
-- Google Calendar read and create routes
-- AI thread analysis, rewrite, chat, and regeneration endpoints
-- An orchestrator route with memory-backed multi-agent delegation
-- Automation run and approval APIs
-- Supabase-backed persistence for labels, thread metadata, memories, automation settings, and action history
+See [`docs/FEATURES.md`](./docs/FEATURES.md) for the full feature reference and [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for how it works internally.
 
-## Tech Stack
+## Tech stack
 
 | Area | Stack |
 | --- | --- |
-| App framework | Next.js 15 App Router |
+| Framework | Next.js 15 (App Router) |
 | Language | TypeScript, React 19 |
-| Styling | Tailwind CSS 4 |
-| UI primitives | Radix UI / shadcn-style components |
-| AI | Groq via Vercel AI SDK |
+| Styling | Tailwind CSS 4, Radix UI / shadcn-style components |
+| AI | Groq (`llama-3.3-70b-versatile`) via the Vercel AI SDK |
 | Auth | NextAuth.js with Google OAuth |
 | Integrations | Gmail API, Google Calendar API |
-| Persistence | Supabase |
+| Persistence | Supabase (optional) |
+| Validation | Zod |
+| Testing | Vitest |
 
-## Repository Layout
+## Quick start
 
-```text
-.
-|-- LICENSE
-|-- README.md
-`-- submissions/
-    `-- 61-Avalon/
-        |-- app/                # Next.js routes, pages, and API handlers
-        |-- components/         # Inbox, landing page, automation, and UI components
-        |-- data/               # Demo email data
-        |-- hooks/              # Client hooks
-        |-- lib/                # Gmail, calendar, AI, automation, auth, and memory logic
-        |-- public/             # Static assets
-        |-- scripts/            # Project helper scripts
-        |-- types/              # Shared application types
-        |-- .env.example
-        `-- package.json
-```
-
-## Local Setup
-
-### 1. Install dependencies
+**Prerequisites:** Node.js 20+ (see [`.nvmrc`](./.nvmrc)) and npm.
 
 ```bash
-cd submissions/61-Avalon
+# 1. Install dependencies
 npm install
-```
 
-### 2. Create local environment config
+# 2. Configure environment
+cp .env.example .env.local   # then fill in the values (see below)
 
-Copy `submissions/61-Avalon/.env.example` to `.env.local` and fill in the values.
-
-### 3. Required environment variables
-
-These are needed for the full product experience:
-
-```env
-GROQ_API_KEY=...
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-NEXTAUTH_SECRET=...
-NEXTAUTH_URL=http://localhost:3000
-```
-
-### 4. Recommended Supabase variables
-
-MailMate can still boot without Supabase, but persistence-heavy features degrade to no-op behavior. Configure these if you want stored memories, labels, thread metadata, automation history, and settings:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
-```
-
-### 5. Run the app
-
-```bash
+# 3. Run the dev server
 npm run dev
 ```
 
-Then open `http://localhost:3000`.
+Open <http://localhost:3000>. The landing page links to a **demo inbox** (no sign-in needed) and a **Connect Google** flow.
 
-## Google OAuth Setup
+> AI features need a `GROQ_API_KEY`. Gmail/Calendar features need Google OAuth credentials. Without them, the UI still loads in demo mode.
 
-In Google Cloud Console:
+## Environment variables
 
-1. Enable the Gmail API and Google Calendar API.
-2. Create OAuth credentials for a web app.
-3. Add `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI for local development.
-4. If you deploy the app, add your production callback URL too.
+Copy [`.env.example`](./.env.example) to `.env.local`. **Never commit `.env.local`.**
 
-## Feature Walkthrough
+### Required
 
-### Inbox and composition
+| Variable | Description |
+| --- | --- |
+| `GROQ_API_KEY` | Powers all AI features. Get one at <https://console.groq.com/keys> |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `NEXTAUTH_SECRET` | Session encryption secret (≥32 chars). Generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | Canonical app URL (`http://localhost:3000` locally) |
 
-- Browse inbox folders, thread previews, labels, and filters
-- Read threads, reply inline, and create new messages
-- Use AI rewriting tools to fix grammar, formalize, shorten, or elaborate draft text
+### Optional (Supabase persistence)
 
-### AI analysis
+| Variable | Description |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key (server-only) |
 
-- Generate structured thread summaries
-- Detect follow-ups, tasks, deadlines, and meetings
-- Get smart replies and a longer draft reply from the selected conversation
+Without Supabase, persistence-heavy features fall back to local storage.
 
-### Coordinator and agents
+## Google OAuth setup
 
-- Chat with the current thread in context
-- Use a coordinator that can route work to triage, scheduling, and email-assistant flows
-- Persist user preferences as memory when Supabase is configured
+1. In the [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create or select a project.
+2. Enable the **Gmail API** and **Google Calendar API**.
+3. Create an **OAuth 2.0 Client ID** (Web application).
+4. Add the redirect URI `http://localhost:3000/api/auth/callback/google` (and your production callback URL when you deploy).
+5. Copy the Client ID and Secret into `.env.local`.
 
-### Automation
+## Supabase setup (optional)
 
-- Classify safe auto-actions for low-risk email handling
-- Queue confirm-tier actions like replies or external calendar invitations for approval
-- Track recent automation actions and approval status
+1. Create a project at <https://supabase.com>.
+2. In the SQL editor, run both migrations from [`scripts/`](./scripts):
+   - `migration-agent-memory.sql`
+   - `migration-automation.sql`
+3. Copy the URL and keys from **Project Settings → API** into `.env.local`.
 
-## Demo Mode vs Connected Mode
+## Scripts
 
-- Demo mode: the app loads with mock email data and works without Google authentication
-- Connected mode: Gmail and Calendar routes use the signed-in user's Google account, and agent/automation features can act on live mailbox data
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build |
+| `npm run lint` | Lint with ESLint (Next config) |
+| `npm run typecheck` | Type-check with `tsc --noEmit` |
+| `npm run test` | Run the Vitest suite |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run test:coverage` | Vitest with coverage |
 
-## Important Paths
+## Testing
 
-- App: `submissions/61-Avalon`
-- App README: `submissions/61-Avalon/README.md`
-- Feature overview: `submissions/61-Avalon/FEATURES.md`
-- Team guide: `submissions/61-Avalon/TEAM_GUIDE.md`
+```bash
+npm run test
+```
 
-## Team
+Unit tests live in [`tests/`](./tests) and cover the rate limiter, automation
+engine, and inbox storage helpers. Please add tests alongside new `lib/` logic.
 
-- Team number: 61
-- Team name: Avalon
-- Project: MailMate
+## Deployment
+
+### Vercel (recommended)
+
+Import the repo into Vercel, add the environment variables under **Settings →
+Environment Variables**, and update the Google OAuth redirect URI to your
+production URL. The included [`vercel.json`](./vercel.json) sets the build
+command and API security headers.
+
+### Docker / self-host
+
+The app builds to a standalone server. Build and run the container, passing your
+environment at runtime:
+
+```bash
+docker build -t mailmate .
+docker run -p 3000:3000 --env-file .env.local mailmate
+```
+
+## Project structure
+
+```text
+app/         Next.js routes, pages, and API handlers
+components/  Landing, inbox, and shared UI components
+lib/         Gmail, Calendar, Groq, agents, automation, auth, persistence
+types/       Shared TypeScript types
+data/        Demo email data
+hooks/       Client hooks
+scripts/     Supabase migrations
+tests/       Vitest unit tests
+docs/        Architecture and feature documentation
+```
+
+See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the full breakdown.
+
+## Contributing
+
+Contributions are welcome — see [`CONTRIBUTING.md`](./CONTRIBUTING.md). Please
+review the [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) and report security
+issues per [`SECURITY.md`](./SECURITY.md).
 
 ## License
 
-MIT
+[MIT](./LICENSE)
