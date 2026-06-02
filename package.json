@@ -1,12 +1,27 @@
 {
-  "name": "my-project",
+  "name": "mailmate",
   "version": "0.1.0",
   "private": true,
+  "description": "AI-powered email workspace — connects to Gmail and Google Calendar, analyzes threads with Groq, and runs an approval-gated multi-agent assistant.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/8harath/MailMate.git"
+  },
+  "homepage": "https://github.com/8harath/MailMate#readme",
+  "bugs": {
+    "url": "https://github.com/8harath/MailMate/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -76,6 +91,9 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitest/coverage-v8": "^4.1.4",
+    "@eslint/eslintrc": "^3.2.0",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "15.5.14",
     "jsdom": "^29.0.2",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
