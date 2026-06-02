@@ -6,6 +6,9 @@ import { Thread, AgentStep } from '@/types'
 const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
 const MODEL = 'llama-3.3-70b-versatile'
 
+// The AI SDK's `steps` are generic over the concrete ToolSet; we normalize them
+// into the app's serializable AgentStep shape. The `as unknown as` casts at call
+// sites bridge that generic inference gap and are confined to this boundary.
 function formatSteps(steps: StepResult<ToolSet>[]): AgentStep[] {
   return steps.map((s) => ({
     toolCalls: s.toolCalls?.map((tc) => ({ name: tc.toolName, args: tc.input as Record<string, unknown> })),

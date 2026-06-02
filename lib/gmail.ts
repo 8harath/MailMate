@@ -90,6 +90,8 @@ export async function getThread(accessToken: string, threadId: string): Promise<
       id: threadId,
       format: 'full',
     })
+    // googleapis returns its own `Schema$Thread`; we cast to the app's narrower
+    // GmailThread shape, which downstream parsers (parseThread) consume safely.
     return data as unknown as GmailThread
   } catch {
     return null
