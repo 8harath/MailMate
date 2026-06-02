@@ -7,6 +7,10 @@ import { executeAutoActions } from '@/lib/automation-executor'
 import { saveActions, getAutomationSettings } from '@/lib/automation-store'
 import { Thread, ComprehensiveAnalysis, AutomationAction } from '@/types'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { parseBody, automateRunSchema } from '@/lib/validation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('automate/run')
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -30,14 +34,11 @@ export async function POST(request: NextRequest) {
 
   const userId = session.user.email
   const accessToken = session.accessToken
-  const { threads, analyses } = (await request.json()) as {
-    threads: Thread[]
-    analyses?: Record<string, ComprehensiveAnalysis>
-  }
 
-  if (!threads || threads.length === 0) {
-    return NextResponse.json({ error: 'No threads provided.' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, automateRunSchema)
+  if (!parsed.ok) return parsed.response
+  const threads = parsed.data.threads as unknown as Thread[]
+  const analyses = parsed.data.analyses as Record<string, ComprehensiveAnalysis> | undefined
 
   const settings = await getAutomationSettings(userId)
   if (!settings.enabled) {
@@ -62,15 +63,19 @@ export async function POST(request: NextRequest) {
       const actions = classifyActions(thread, analysis, userId, settings)
       allActions.push(...actions)
     } catch (err) {
-      console.error(`Automation failed for thread ${thread.id}:`, err)
+      log.error(`automation failed for thread ${thread.id}`, err)
     }
   }
 
   // Execute auto and notify tier actions
   const processed = await executeAutoActions(allActions, accessToken)
 
-  // Persist all actions to the store
-  await saveActions(userId, processed)
+  // Persist all actions to the store. A persistence failure is logged but does
+  // not fail the request — the executed actions have already taken effect.
+  const persisted = await saveActions(userId, processed)
+  if (!persisted) {
+    log.warn('failed to persist automation actions to the store')
+  }
 
   const executed = processed.filter((a) => a.status === 'executed')
   const pending = processed.filter(

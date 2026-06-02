@@ -3,19 +3,18 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { runEmailAssistant } from '@/lib/agents'
 import { Thread } from '@/types'
+import { parseBody, agentMessageSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
-  const { message, thread, threadId, history } = await request.json()
-
-  if (!message?.trim()) {
-    return NextResponse.json({ error: 'Message is required' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, agentMessageSchema)
+  if (!parsed.ok) return parsed.response
+  const { message, thread, threadId, history } = parsed.data
 
   // Build thread context — accept full thread object or threadId for mock data
   let threadData: Thread | null = null
-  if (thread && thread.id && thread.emails) {
-    threadData = thread as Thread
+  if (thread) {
+    threadData = thread as unknown as Thread
   } else if (threadId) {
     // Fall back to mock data for demo mode
     const { mockThreads } = await import('@/data/emails')

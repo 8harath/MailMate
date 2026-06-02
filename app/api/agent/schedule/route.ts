@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { runSchedulingAgent } from '@/lib/agents'
 import { Thread } from '@/types'
+import { parseBody, agentScheduleSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -13,16 +14,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { thread } = await request.json()
-  if (!thread?.id || !thread?.emails) {
-    return NextResponse.json(
-      { error: 'Thread data is required.' },
-      { status: 400 }
-    )
-  }
+  const parsed = await parseBody(request, agentScheduleSchema)
+  if (!parsed.ok) return parsed.response
 
   try {
-    const result = await runSchedulingAgent(thread as Thread, session.accessToken)
+    const result = await runSchedulingAgent(parsed.data.thread as unknown as Thread, session.accessToken)
     return NextResponse.json(result)
   } catch (error) {
     console.error('Scheduling agent error:', error)

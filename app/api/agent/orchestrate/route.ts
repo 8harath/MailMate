@@ -5,6 +5,7 @@ import { runCoordinator } from '@/lib/coordinator'
 import { runEmailAssistant } from '@/lib/agents'
 import { Thread } from '@/types'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { parseBody, agentMessageSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -23,16 +24,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { message, thread, threadId, history } = await request.json()
-
-  if (!message?.trim()) {
-    return NextResponse.json({ error: 'Message is required' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, agentMessageSchema)
+  if (!parsed.ok) return parsed.response
+  const { message, thread, threadId, history } = parsed.data
 
   let threadData: Thread | null = null
-  if (thread && thread.id && Array.isArray(thread.emails)) {
-    threadData = thread as Thread
-  } else if (typeof threadId === 'string') {
+  if (thread) {
+    threadData = thread as unknown as Thread
+  } else if (threadId) {
     const { mockThreads } = await import('@/data/emails')
     threadData = mockThreads.find((t) => t.id === threadId) ?? null
   }

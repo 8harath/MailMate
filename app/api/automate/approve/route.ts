@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { executeAction } from '@/lib/automation-executor'
 import { updateActionStatus, getActions } from '@/lib/automation-store'
 import { AutomationAction } from '@/types'
+import { parseBody, automateApproveSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -15,17 +16,9 @@ export async function POST(request: NextRequest) {
   }
 
   const userId = session.user.email
-  const { actionId, decision } = (await request.json()) as {
-    actionId: string
-    decision: 'approve' | 'reject'
-  }
-
-  if (!actionId || !decision) {
-    return NextResponse.json(
-      { error: 'actionId and decision are required.' },
-      { status: 400 }
-    )
-  }
+  const parsed = await parseBody(request, automateApproveSchema)
+  if (!parsed.ok) return parsed.response
+  const { actionId, decision } = parsed.data
 
   if (decision === 'reject') {
     await updateActionStatus(userId, actionId, 'rejected')
@@ -47,7 +40,13 @@ export async function POST(request: NextRequest) {
   const { success, error } = await executeAction(action, session.accessToken)
 
   if (success) {
-    await updateActionStatus(userId, actionId, 'executed')
+    const persisted = await updateActionStatus(userId, actionId, 'executed')
+    if (!persisted) {
+      return NextResponse.json(
+        { error: 'Action executed but its status could not be saved. It may reappear as pending.', actionId },
+        { status: 502 }
+      )
+    }
     return NextResponse.json({ status: 'executed', actionId })
   }
 
