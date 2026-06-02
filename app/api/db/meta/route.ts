@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getThreadMetas, saveThreadMeta } from '@/lib/supabase'
+import { parseBody, threadMetaSchema } from '@/lib/validation'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -20,8 +21,9 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-  const { threadId, ...meta } = await request.json()
-  if (!threadId) return NextResponse.json({ error: 'threadId required' }, { status: 400 })
+  const parsed = await parseBody(request, threadMetaSchema)
+  if (!parsed.ok) return parsed.response
+  const { threadId, ...meta } = parsed.data
 
   try {
     await saveThreadMeta(session.userId, threadId, meta)

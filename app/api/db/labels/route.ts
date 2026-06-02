@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserLabels, createUserLabel, deleteUserLabel } from '@/lib/supabase'
+import { parseBody, labelCreateSchema, labelDeleteSchema } from '@/lib/validation'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -20,11 +21,11 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-  const { name } = await request.json()
-  if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 })
+  const parsed = await parseBody(request, labelCreateSchema)
+  if (!parsed.ok) return parsed.response
 
   try {
-    const label = await createUserLabel(session.userId, name)
+    const label = await createUserLabel(session.userId, parsed.data.name)
     return NextResponse.json({ label })
   } catch (error) {
     console.error('Create label error:', error)
@@ -36,11 +37,11 @@ export async function DELETE(request: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-  const { id } = await request.json()
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+  const parsed = await parseBody(request, labelDeleteSchema)
+  if (!parsed.ok) return parsed.response
 
   try {
-    await deleteUserLabel(session.userId, id)
+    await deleteUserLabel(session.userId, parsed.data.id)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Delete label error:', error)

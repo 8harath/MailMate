@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { sendEmail } from '@/lib/gmail'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { parseBody, gmailSendSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -21,17 +22,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { to, subject, body, threadId, inReplyTo } = await request.json()
-
-  if (!to || typeof to !== 'string' || !to.trim()) {
-    return NextResponse.json({ error: 'Missing required field: to' }, { status: 400 })
-  }
-  if (!subject || typeof subject !== 'string' || !subject.trim()) {
-    return NextResponse.json({ error: 'Missing required field: subject' }, { status: 400 })
-  }
-  if (!body || typeof body !== 'string' || !body.trim()) {
-    return NextResponse.json({ error: 'Missing required field: body' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, gmailSendSchema)
+  if (!parsed.ok) return parsed.response
+  const { to, subject, body, threadId, inReplyTo } = parsed.data
 
   try {
     const result = await sendEmail(session.accessToken, to.trim(), subject.trim(), body, threadId, inReplyTo)

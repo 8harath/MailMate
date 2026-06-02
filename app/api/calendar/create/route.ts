@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createCalendarEvent } from '@/lib/google-calendar'
+import { parseBody, calendarCreateSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -9,11 +10,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { title, date, time, duration, description, attendees } = await request.json()
-
-  if (!title || !date) {
-    return NextResponse.json({ error: 'Title and date are required' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, calendarCreateSchema)
+  if (!parsed.ok) return parsed.response
+  const { title, date, time, duration, description, attendees } = parsed.data
 
   try {
     const event = await createCalendarEvent(session.accessToken, {

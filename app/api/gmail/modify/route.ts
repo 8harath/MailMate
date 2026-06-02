@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { markAsRead, markAsUnread, starThread, unstarThread, trashThread, archiveThread } from '@/lib/gmail'
+import { parseBody, gmailModifySchema } from '@/lib/validation'
 
 type Action = 'read' | 'unread' | 'star' | 'unstar' | 'trash' | 'archive'
 
@@ -20,14 +21,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { threadId, action } = await request.json()
-
-  if (!threadId || !action || !(action in actions)) {
-    return NextResponse.json({ error: 'Invalid threadId or action' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, gmailModifySchema)
+  if (!parsed.ok) return parsed.response
+  const { threadId, action } = parsed.data
 
   try {
-    await actions[action as Action](session.accessToken, threadId)
+    await actions[action](session.accessToken, threadId)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Gmail modify error:', error)
