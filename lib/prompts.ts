@@ -114,3 +114,94 @@ export function wrapUntrusted(label: string, content: string): string {
 ${sanitized}
 <<<END ${label}>>>`
 }
+
+// ─── Output / action guard ──────────────────────────────────────
+//
+// Deterministic backstop run inside the high-risk tools, after the model has
+// decided to act but before the real Gmail/Calendar call. It can only ever
+// BLOCK — it never invents or sends anything. This is the layer that holds even
+// if the prompt-level defenses are talked around.
+
+/** Tools whose effects leave the user's account or mutate their data. */
+export type GuardedTool = 'sendEmail' | 'createCalendarEvent' | 'modifyThread'
+
+export interface GuardInput {
+  tool: GuardedTool
+  /** The tool's input parameters (recipient, action, …). */
+  params: Record<string, unknown>
+  /** Trusted human instruction: the user's message + prior user turns — NEVER email content. */
+  trustedInstruction: string
+  /** Email addresses already part of the current thread (trusted recipients). */
+  threadParticipants?: string[]
+}
+
+export interface GuardResult {
+  blocked: boolean
+  reason?: string
+}
+
+/** Pull the first email address out of a "Name <email>" or bare-address string. */
+function extractEmail(value: string): string {
+  const match = value.match(/[\w.+-]+@[\w.-]+\.[\w-]+/)
+  return match ? match[0].toLowerCase() : ''
+}
+
+function block(tool: string, reason: string): GuardResult {
+  log.warn(`Blocked ${tool}: ${reason}`)
+  return { blocked: true, reason }
+}
+
+/**
+ * Gate an outbound/destructive action against the trusted user instruction.
+ *
+ * Enforces two invariants:
+ *  1. Authorization — the trusted instruction must contain an explicit signal
+ *     for this class of action; otherwise the action is blocked.
+ *  2. No injected-recipient exfiltration — a `sendEmail` recipient must be a
+ *     thread participant or be named in the trusted instruction. A recipient
+ *     that appears only in email body content is blocked.
+ *
+ * NOTE: on the coordinator→sub-agent path the immediate instruction is
+ * model-generated, so the recipient-allowlist invariant is the stronger
+ * backstop there. read/star thread actions are non-destructive and pass freely.
+ */
+export function guardOutboundAction(input: GuardInput): GuardResult {
+  const { tool, params, trustedInstruction, threadParticipants = [] } = input
+  const instruction = (trustedInstruction || '').toLowerCase()
+  const authorized = (re: RegExp) => re.test(instruction)
+
+  if (tool === 'sendEmail') {
+    if (!authorized(/\b(send|reply|respond|write back|email|forward|confirm|approved?|go ahead|do it|okay|ok|yes)\b/i)) {
+      return block(tool, 'no explicit user instruction to send an email')
+    }
+    const recipients = (String(params.to ?? '').match(/[\w.+-]+@[\w.-]+\.[\w-]+/g) ?? []).map((e) => e.toLowerCase())
+    const allowed = new Set(threadParticipants.map(extractEmail).filter(Boolean))
+    for (const recipient of recipients) {
+      if (allowed.has(recipient) || instruction.includes(recipient)) continue
+      return block(
+        tool,
+        `recipient "${recipient}" is not a thread participant and was not named by the user (possible injected exfiltration target)`
+      )
+    }
+    return { blocked: false }
+  }
+
+  if (tool === 'createCalendarEvent') {
+    if (!authorized(/\b(schedule|create|add|book|set ?up|calendar|event|invite|meeting|confirm|approved?|go ahead|yes)\b/i)) {
+      return block(tool, 'no explicit user instruction to create a calendar event')
+    }
+    return { blocked: false }
+  }
+
+  if (tool === 'modifyThread') {
+    const action = String(params.action ?? '')
+    if (action === 'archive' || action === 'trash') {
+      if (!authorized(/\b(archive|trash|delete|remove|clean ?up|confirm|approved?|go ahead|yes)\b/i)) {
+        return block(tool, `no explicit user instruction to ${action} this thread`)
+      }
+    }
+    return { blocked: false }
+  }
+
+  return { blocked: false }
+}
