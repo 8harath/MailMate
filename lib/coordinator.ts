@@ -2,6 +2,7 @@ import { generateText, stepCountIs, StepResult, ToolSet } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createCoordinatorTools } from './coordinator-tools'
 import { formatMemoryContext, getMemories } from './memory'
+import { SECURITY_CONTRACT, ACTION_SAFETY, ACCURACY_RULES, wrapUntrusted, todayISO } from './prompts'
 import { Thread, AgentStep, CoordinatorResult, DelegationStep, MemoryCategory } from '@/types'
 
 const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
@@ -28,11 +29,13 @@ export async function runCoordinator(
 
   // Build thread context summary for the coordinator
   const threadContext = thread
-    ? `Currently selected email thread:\n` +
-      `  Subject: "${thread.subject}"\n` +
-      `  From: ${thread.from.name} <${thread.from.email}>\n` +
-      `  Messages: ${thread.emails.length}\n` +
-      `  Latest message preview: ${thread.emails[thread.emails.length - 1]?.body.slice(0, 200) ?? 'N/A'}`
+    ? wrapUntrusted(
+        'SELECTED EMAIL THREAD',
+        `Subject: "${thread.subject}"\n` +
+          `From: ${thread.from.name} <${thread.from.email}>\n` +
+          `Messages: ${thread.emails.length}\n` +
+          `Latest message preview: ${thread.emails[thread.emails.length - 1]?.body.slice(0, 200) ?? 'N/A'}`
+      )
     : 'No email thread is currently selected.'
 
   const hasAuth = !!accessToken
@@ -41,6 +44,8 @@ export async function runCoordinator(
 
 ## Your Role
 You analyze user requests, consult your memory for relevant preferences, delegate to specialized sub-agents, and synthesize their results into clear, unified responses.
+
+${SECURITY_CONTRACT}
 
 ## Available Sub-Agents
 
@@ -91,11 +96,15 @@ You analyze user requests, consult your memory for relevant preferences, delegat
 9. **Automation-first**: When processing emails, use runAutomation to auto-handle safe actions. Only present confirm-tier actions to the user. Clearly list what was auto-done and what needs approval.
 10. **Approval flow**: When presenting pending actions, show the action ID so the user can approve. When the user says "yes", "approve", "go ahead", use approveAction to execute it.
 
+${ACTION_SAFETY}
+
+${ACCURACY_RULES}
+
 ## Context
 
 ${threadContext}
 ${memoryContext}
-Today's date: ${new Date().toISOString().split('T')[0]}`
+Today's date (UTC): ${todayISO()}`
 
   const tools = createCoordinatorTools(
     accessToken,
