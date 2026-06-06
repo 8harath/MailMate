@@ -1,6 +1,7 @@
 import { generateText, stepCountIs, StepResult, ToolSet } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createAgentTools } from './agent-tools'
+import { SECURITY_CONTRACT, ACTION_SAFETY, ACCURACY_RULES, wrapUntrusted, todayISO } from './prompts'
 import { Thread, AgentStep } from '@/types'
 
 const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
@@ -26,47 +27,60 @@ export async function runEmailAssistant(
   conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [],
   memoryContext: string = ''
 ) {
-  const tools = accessToken ? createAgentTools(accessToken) : {}
+  // Recipients already on the thread are trusted send targets for the guard;
+  // the human `message` (never email content) authorizes outbound actions.
+  const threadParticipants = thread
+    ? [thread.from.email, ...thread.emails.map((e) => e.from.email)]
+    : []
+  const tools = accessToken ? createAgentTools(accessToken, message, threadParticipants) : {}
 
   const threadContext = thread
-    ? `Currently viewing thread: "${thread.subject}" from ${thread.from.name} <${thread.from.email}>\n` +
-      `Thread has ${thread.emails.length} messages.\n\n` +
-      thread.emails
-        .slice(-3)
-        .map(
-          (e) =>
-            `[${e.from.name} <${e.from.email}>] (${e.timestamp}):\n${e.body.slice(0, 500)}`
-        )
-        .join('\n---\n')
+    ? wrapUntrusted(
+        'SELECTED EMAIL THREAD',
+        `Subject: "${thread.subject}" from ${thread.from.name} <${thread.from.email}>\n` +
+          `Thread has ${thread.emails.length} messages.\n\n` +
+          thread.emails
+            .slice(-3)
+            .map((e) => `[${e.from.name} <${e.from.email}>] (${e.timestamp}):\n${e.body.slice(0, 500)}`)
+            .join('\n---\n')
+      )
     : 'No email thread is currently selected.'
 
   const hasTools = Object.keys(tools).length > 0
 
-  const systemPrompt = `You are MailMate, an intelligent email assistant.${
+  const systemPrompt = `You are MailMate, an intelligent email assistant.
+
+${SECURITY_CONTRACT}
+${
     hasTools
       ? `
+## Tools
+- searchInbox — search the inbox (Gmail search syntax)
+- readThread — read a full email thread
+- listCalendarEvents — check upcoming calendar events
+- createCalendarEvent — create an event (only after the user confirms)
+- draftReply — compose a reply for review (does NOT send)
+- sendEmail — send a reply (only after the user explicitly confirms)
+- modifyThread — archive, star, mark read, or trash a thread
 
-You have access to tools for Gmail and Google Calendar. You can:
-- Search the inbox for emails (searchInbox)
-- Read full email threads (readThread)
-- Check upcoming calendar events (listCalendarEvents)
-- Create calendar events (createCalendarEvent)
-- Draft email replies for review (draftReply)
-- Send emails after user confirmation (sendEmail)
-- Archive, star, or trash threads (modifyThread)
+## How to operate
+1. Explain what you're about to do before each tool call.
+2. After searching or reading, summarize the key findings.
+3. For calendar work, check existing events / conflicts before proposing a time.
+4. Draft with draftReply; only call sendEmail after the user confirms. If the guard blocks an action, relay that to the user and ask them to confirm — do not retry.
 
-IMPORTANT RULES:
-1. NEVER send an email without explicit user confirmation. Always draft first.
-2. Explain what you're doing before using a tool.
-3. When you search or read emails, summarize the key findings.
-4. For calendar operations, always check for conflicts first.`
-      : '\n\nYou are in demo mode without Gmail/Calendar access. Answer based on the email context provided.'
+${ACTION_SAFETY}`
+      : `
+## Demo mode
+You are in demo mode without Gmail/Calendar access. Answer using only the provided email context. You cannot send, modify, or schedule anything.`
   }
 
-Current context:
+${ACCURACY_RULES}
+
+## Current context
 ${threadContext}
 ${memoryContext}
-Today's date: ${new Date().toISOString().split('T')[0]}`
+Today's date (UTC): ${todayISO()}`
 
   const { text, steps } = await generateText({
     model: groq(MODEL),
