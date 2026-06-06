@@ -10,13 +10,23 @@ import {
   trashThread,
 } from './gmail'
 import { listUpcomingEvents, createCalendarEvent } from './google-calendar'
+import { guardOutboundAction } from './prompts'
 
 /**
  * Creates the tool set for MailMate agents.
  * Each tool wraps a Gmail or Calendar API call and returns
  * a JSON-serializable result the LLM can reason about.
+ *
+ * `trustedInstruction` is the human user's message (NOT email content) and
+ * `threadParticipants` are the addresses already on the current thread. Both
+ * feed the outbound-action guard so injected email content cannot trigger an
+ * unauthorized send/create or exfiltrate to an unknown recipient.
  */
-export function createAgentTools(accessToken: string) {
+export function createAgentTools(
+  accessToken: string,
+  trustedInstruction = '',
+  threadParticipants: string[] = []
+) {
   return {
     searchInbox: tool({
       description:
@@ -124,6 +134,10 @@ export function createAgentTools(accessToken: string) {
         attendees: z.array(z.string()).optional().describe('Attendee email addresses'),
       }),
       execute: async (params: { title: string; date: string; time?: string; duration?: number; description?: string; attendees?: string[] }) => {
+        const guard = guardOutboundAction({ tool: 'createCalendarEvent', params, trustedInstruction, threadParticipants })
+        if (guard.blocked) {
+          return { blocked: true as const, reason: guard.reason, note: 'Blocked by the safety guard. Propose the event and ask the user to confirm before creating it.' }
+        }
         try {
           const result = await createCalendarEvent(accessToken, params)
           return { status: 'created' as const, ...result }
@@ -164,6 +178,10 @@ export function createAgentTools(accessToken: string) {
         threadId: z.string().optional().describe('Thread ID for replies'),
       }),
       execute: async ({ to, subject, body, threadId }: { to: string; subject: string; body: string; threadId?: string }) => {
+        const guard = guardOutboundAction({ tool: 'sendEmail', params: { to }, trustedInstruction, threadParticipants })
+        if (guard.blocked) {
+          return { blocked: true as const, reason: guard.reason, note: 'Blocked by the safety guard. Do not retry — ask the user to confirm the send explicitly.' }
+        }
         try {
           const result = await sendEmail(accessToken, to, subject, body, threadId)
           return { status: 'sent' as const, messageId: result.id }
@@ -181,6 +199,10 @@ export function createAgentTools(accessToken: string) {
         action: z.enum(['read', 'archive', 'star', 'trash']).describe('The action to perform'),
       }),
       execute: async ({ threadId, action }: { threadId: string; action: 'read' | 'archive' | 'star' | 'trash' }) => {
+        const guard = guardOutboundAction({ tool: 'modifyThread', params: { action }, trustedInstruction, threadParticipants })
+        if (guard.blocked) {
+          return { blocked: true as const, reason: guard.reason, note: `Blocked by the safety guard. Ask the user to confirm before you ${action} this thread.` }
+        }
         try {
           const actions: Record<string, (token: string, id: string) => Promise<void>> = {
             read: markAsRead,
