@@ -171,7 +171,7 @@ export function guardOutboundAction(input: GuardInput): GuardResult {
   const authorized = (re: RegExp) => re.test(instruction)
 
   if (tool === 'sendEmail') {
-    if (!authorized(/\b(send|reply|respond|write back|email|forward|confirm|approved?|go ahead|do it|okay|ok|yes)\b/i)) {
+    if (!authorized(/\b(send|reply|respond|write back|forward|confirm|approved?|go ahead|do it|yes)\b/i)) {
       return block(tool, 'no explicit user instruction to send an email')
     }
     const recipients = (String(params.to ?? '').match(/[\w.+-]+@[\w.-]+\.[\w-]+/g) ?? []).map((e) => e.toLowerCase())
@@ -187,7 +187,7 @@ export function guardOutboundAction(input: GuardInput): GuardResult {
   }
 
   if (tool === 'createCalendarEvent') {
-    if (!authorized(/\b(schedule|create|add|book|set ?up|calendar|event|invite|meeting|confirm|approved?|go ahead|yes)\b/i)) {
+    if (!authorized(/\b(schedule|create|add|book|set ?up|invite|confirm|approved?|go ahead|yes)\b/i)) {
       return block(tool, 'no explicit user instruction to create a calendar event')
     }
     return { blocked: false }
