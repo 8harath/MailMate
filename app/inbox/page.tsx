@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import {
   Mail, Search, Loader2, X, Inbox, Bot, Send, Sparkles,
@@ -10,7 +10,7 @@ import {
   Wand2, Minimize2, Maximize2, CheckCheck, CornerUpLeft,
   LogIn, LogOut, CalendarPlus, ExternalLink,
   RefreshCw, Filter, ChevronDown, ChevronRight, Plus, PenSquare, CalendarDays, Menu, Zap,
-  Brain, Network
+  Brain, Network, Keyboard, Command as CommandIcon
 } from 'lucide-react'
 import NextLink from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -55,6 +55,10 @@ import { AutomationStatusBar } from '@/components/automation-status-bar'
 import { ApprovalQueue } from '@/components/approval-queue'
 import { AIChatPanel as AIChatPanelComponent, MemoryPanel as MemoryPanelComponent } from '@/components/inbox/ai-chat-panel'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { Kbd } from '@/components/ui/kbd'
+import { useKeyboardShortcuts, type Shortcut } from '@/hooks/use-keyboard-shortcuts'
+import { CommandPalette, type PaletteAction, type PaletteThread } from '@/components/inbox/command-palette'
+import { ShortcutsHelp } from '@/components/inbox/shortcuts-help'
 
 // ─── Storage helpers ────────────────────────────────────────────
 
