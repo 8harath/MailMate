@@ -47,8 +47,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${hanken.variable} ${fraunces.variable} ${jetbrains.variable}`}>
       <body className="font-sans antialiased">
+        {/* Keyboard / screen-reader users land here first */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg"
+        >
+          Skip to content
+        </a>
         <SessionProvider>
           {children}
         </SessionProvider>
