@@ -1,8 +1,31 @@
 import type { Metadata } from 'next'
+import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SessionProvider } from '@/components/session-provider'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
+
+// Display — an editorial serif with optical sizing for headings & the wordmark.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-fraunces',
+  axes: ['opsz', 'SOFT', 'WONK'],
+})
+
+// UI / body — a warm, characterful grotesque (not Inter).
+const hanken = Hanken_Grotesk({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-hanken',
+})
+
+// Mono — keyboard hints, shortcuts and technical metadata.
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-jetbrains',
+})
 
 export const metadata: Metadata = {
   title: 'MailMate - AI Email Assistant',
