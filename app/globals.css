@@ -134,23 +134,45 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+  /* Fraunces optical sizing for display type */
+  .font-display {
+    font-optical-sizing: auto;
+    font-variation-settings: 'opsz' 40, 'SOFT' 0, 'WONK' 0;
+    letter-spacing: -0.01em;
+  }
+  /* Accessible, consistent keyboard focus — spruce ring, never on mouse */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  ::selection {
+    background: oklch(0.46 0.078 162 / 0.18);
   }
 }
 
 /* Smooth scrolling */
 html { scroll-behavior: smooth; }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* Custom scrollbar — warm, quiet, out of the way */
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(0.8 0.01 260); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(0.7 0.01 260); }
+::-webkit-scrollbar-thumb { background: oklch(0.82 0.01 120); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: oklch(0.72 0.02 150); background-clip: padding-box; }
+.dark ::-webkit-scrollbar-thumb { background: oklch(0.34 0.015 165); background-clip: padding-box; }
+.dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.42 0.02 162); background-clip: padding-box; }
 
-/* Glass effect utility */
+/* Glass effect utility — warm paper, not cold white */
 .glass {
-  background: oklch(1 0 0 / 0.7);
+  background: oklch(0.998 0.003 95 / 0.72);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+.dark .glass {
+  background: oklch(0.205 0.014 165 / 0.72);
 }
 
 /* Fade-in animation */
@@ -190,9 +212,22 @@ html { scroll-behavior: smooth; }
 }
 .animate-glow-pulse { animation: glow-pulse 8s ease-in-out infinite; }
 
+/* Command palette / dialog entrance — quick, confident */
+@keyframes scale-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-scale-in { animation: scale-in 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
+
 @layer utilities {
   .font-display {
     font-family: var(--font-display);
+  }
+
+  /* Keyboard-cursor row in the thread list — a quiet spruce rail */
+  .kbd-cursor {
+    box-shadow: inset 3px 0 0 var(--ring);
+    background: var(--accent);
   }
 
   .text-stroke {
