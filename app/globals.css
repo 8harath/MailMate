@@ -296,3 +296,23 @@ html { scroll-behavior: smooth; }
     z-index: 1;
   }
 }
+
+/* Respect users who ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-float-slow,
+  .animate-float-reverse,
+  .animate-glow-pulse,
+  .animate-pulse-soft,
+  .marquee,
+  .marquee-reverse {
+    animation: none !important;
+  }
+}
