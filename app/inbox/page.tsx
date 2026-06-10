@@ -484,7 +484,7 @@ function FolderEmptyState({
   return (
     <Empty className={compact ? 'gap-4 rounded-2xl border-none px-4 py-12' : 'min-h-full gap-5 rounded-[1.75rem] border border-dashed border-gray-200 bg-white/80 p-10 shadow-sm'}>
       <EmptyHeader className="max-w-md">
-        <EmptyMedia variant="icon" className={compact ? 'size-12 rounded-2xl bg-gray-100 text-gray-500' : 'size-14 rounded-3xl bg-gradient-to-br from-blue-50 to-cyan-100 text-blue-700'}>
+        <EmptyMedia variant="icon" className={compact ? 'size-12 rounded-2xl bg-muted text-muted-foreground' : 'size-14 rounded-3xl bg-accent text-primary'}>
           <Icon className={compact ? 'size-6' : 'size-7'} />
         </EmptyMedia>
         <EmptyTitle className={compact ? 'text-base text-gray-700' : 'text-2xl text-gray-900'}>{title}</EmptyTitle>
@@ -495,7 +495,7 @@ function FolderEmptyState({
 
       <EmptyContent className={compact ? 'max-w-xs gap-2' : 'max-w-md gap-3'}>
         {hasSearch && (
-          <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 px-3 py-1 text-blue-700">
+          <Badge variant="outline" className="rounded-full border-primary/20 bg-accent px-3 py-1 text-primary">
             Search: {searchLabel}
           </Badge>
         )}
