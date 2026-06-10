@@ -853,7 +853,7 @@ function SummarySection({ thread, analysis, meta }: { thread: Thread; analysis: 
         <ul className="space-y-3">
           {analysis.summary.map((s, i) => (
             <li key={i} className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
-              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
               <p className="text-sm leading-relaxed text-gray-700">{s}</p>
             </li>
           ))}
@@ -869,7 +869,7 @@ function SmartRepliesSection({ thread, analysis, onUseReply }: { thread: Thread;
     <Card className="overflow-hidden border-gray-200 shadow-sm">
       <CardHeader className="border-b border-gray-100 pb-4">
         <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
-          <MessageSquare className="w-4 h-4 text-blue-600" />
+          <MessageSquare className="w-4 h-4 text-primary" />
           Quick replies
         </CardTitle>
         <CardDescription className="text-gray-500">
