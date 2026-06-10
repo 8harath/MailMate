@@ -2493,7 +2493,7 @@ export default function InboxPage() {
             </div>
 
             <ScrollArea className="flex-1 min-h-0">
-              <div className="pb-4">
+              <div className="pb-4" role="listbox" aria-label={`${folderMeta[folder].label} conversations`} aria-activedescendant={selectedId ?? undefined}>
                 {filteredThreads.map(t => (
                   <ThreadListItem key={t.id} thread={t} selected={t.id === selectedId}
                     analysis={analyses[t.id]} meta={getMeta(t.id)}
@@ -2517,7 +2517,7 @@ export default function InboxPage() {
         )}
 
         {/* Content */}
-        <main className="flex-1 flex overflow-hidden bg-gray-50/50 min-w-0">
+        <main id="main-content" className="flex-1 flex overflow-hidden bg-background min-w-0">
           {isCalendarView ? (
             <CalendarWorkspace
               events={calendarEvents}
@@ -2545,7 +2545,7 @@ export default function InboxPage() {
             <div className="flex-1 p-6">
               <Empty className="min-h-full rounded-[1.75rem] border border-dashed border-gray-200 bg-white/80 shadow-sm">
                 <EmptyHeader>
-                  <EmptyMedia variant="icon" className="size-16 rounded-3xl bg-blue-50 text-blue-700">
+                  <EmptyMedia variant="icon" className="size-16 rounded-3xl bg-accent text-primary">
                     <Mail className="size-8" />
                   </EmptyMedia>
                   <EmptyTitle>Select an email to read</EmptyTitle>
