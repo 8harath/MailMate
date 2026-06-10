@@ -40,7 +40,7 @@ const actionLabels: Record<string, string> = {
 const riskColors: Record<string, string> = {
   auto: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   confirm: 'border-amber-200 bg-amber-50 text-amber-700',
-  notify: 'border-blue-200 bg-blue-50 text-blue-700',
+  notify: 'border-primary/20 bg-accent text-primary',
 }
 
 interface ApprovalQueueProps {
@@ -87,7 +87,7 @@ export function ApprovalQueue({
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
               <Zap className="w-4 h-4 text-white" />
             </div>
             <div>
