@@ -553,7 +553,7 @@ function CalendarWorkspace({
   return (
     <div className="flex-1 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(6,182,212,0.08),_transparent_30%),linear-gradient(180deg,#f8fbff_0%,#f9fafb_100%)] p-6">
       <div className="grid h-full gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <Card className="border-gray-200/80 bg-white/90 shadow-xl shadow-blue-100/30">
+        <Card className="border-border bg-card shadow-xl shadow-primary/10">
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -569,9 +569,9 @@ function CalendarWorkspace({
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Upcoming</p>
-                <p className="mt-2 text-2xl font-bold text-blue-950">{upcomingEvents.length}</p>
+              <div className="rounded-2xl border border-primary/15 bg-accent p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Upcoming</p>
+                <p className="mt-2 text-2xl font-bold text-primary">{upcomingEvents.length}</p>
               </div>
               <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-600">Today</p>
@@ -628,7 +628,7 @@ function CalendarWorkspace({
                   Upcoming events stay linked to Google Calendar so users can jump straight into the original booking.
                 </CardDescription>
               </div>
-              {loading && <Loader2 className="mt-1 h-4 w-4 animate-spin text-blue-500" />}
+              {loading && <Loader2 className="mt-1 h-4 w-4 animate-spin text-primary" />}
             </div>
           </CardHeader>
 
