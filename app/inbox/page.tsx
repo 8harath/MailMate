@@ -636,7 +636,7 @@ function CalendarWorkspace({
             {!isAuthenticated ? (
               <Empty className="m-6 flex-1 rounded-[1.5rem] border border-dashed border-gray-200 bg-gray-50/60">
                 <EmptyHeader>
-                  <EmptyMedia variant="icon" className="size-14 rounded-3xl bg-blue-50 text-blue-700">
+                  <EmptyMedia variant="icon" className="size-14 rounded-3xl bg-accent text-primary">
                     <CalendarDays className="size-7" />
                   </EmptyMedia>
                   <EmptyTitle>Connect Google Calendar</EmptyTitle>
@@ -688,7 +688,7 @@ function CalendarWorkspace({
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
-                            <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+                            <Badge variant="outline" className="rounded-full border-primary/20 bg-accent text-primary">
                               {formatCalendarEventLabel(event.start)}
                             </Badge>
                           </div>
