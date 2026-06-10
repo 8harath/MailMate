@@ -1110,7 +1110,7 @@ function KeyInfoSection({ keyInfo }: { keyInfo: ComprehensiveAnalysis['keyInfo']
     <Card className="overflow-hidden border-gray-200 shadow-sm">
       <CardHeader className="border-b border-gray-100 pb-4">
         <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
-          <Sparkles className="w-4 h-4 text-indigo-500" />
+          <Sparkles className="w-4 h-4 text-primary" />
           Key information
         </CardTitle>
         <CardDescription className="text-gray-500">
@@ -1241,7 +1241,7 @@ function ComposePanel({ thread, initialText, meta, onUpdateDraft, onClose, isAut
     <div className="border-t border-gray-200 bg-white">
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50">
         <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-          <CornerUpLeft className="w-3.5 h-3.5 text-blue-500" /> Replying to {recipientName || thread.from.name}
+          <CornerUpLeft className="w-3.5 h-3.5 text-primary" /> Replying to {recipientName || thread.from.name}
         </span>
         <button onClick={onClose} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"><X className="w-3.5 h-3.5 text-gray-400" /></button>
       </div>
