@@ -2556,13 +2556,13 @@ export default function InboxPage() {
               </Empty>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col overflow-hidden bg-white min-w-0">
+            <div className="flex-1 flex flex-col overflow-hidden bg-card min-w-0">
               {/* Thread header */}
-              <div className="px-6 py-4 border-b border-gray-100 shrink-0 bg-gradient-to-r from-white to-gray-50/50">
+              <div className="px-6 py-4 border-b border-border shrink-0 bg-card">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h1 className="text-xl font-bold text-gray-900 truncate">{selectedThread.subject}</h1>
-                    <p className="text-sm text-gray-500 mt-1 font-medium">
+                    <h1 className="font-display text-2xl font-semibold text-foreground truncate">{selectedThread.subject}</h1>
+                    <p className="text-sm text-muted-foreground mt-1 font-medium">
                       {selectedThread.from.name} &middot; {selectedThread.emails.length} message{selectedThread.emails.length !== 1 ? 's' : ''}
                     </p>
                     {gmailError && (
@@ -2574,26 +2574,26 @@ export default function InboxPage() {
                   <div className="flex items-center gap-1 shrink-0 ml-4">
                     {selectedAnalysis && <PriorityBadge priority={selectedAnalysis.priority} />}
                     <SenderBadge importance={selectedAnalysis?.senderImportance ?? 'regular'} />
-                    <div className="w-px h-5 bg-gray-200 mx-1.5" />
+                    <div className="w-px h-5 bg-border mx-1.5" />
                     <button onClick={() => handleMarkUnread(selectedThread.id)}
-                      className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title="Mark as unread">
-                      <Mail className={`w-4 h-4 ${!getMeta(selectedThread.id).read ? 'text-blue-500' : 'text-gray-400'}`} />
+                      className="p-2 hover:bg-accent rounded-xl transition-colors" title="Mark as unread — U" aria-label="Mark as unread">
+                      <Mail className={`w-4 h-4 ${!getMeta(selectedThread.id).read ? 'text-primary' : 'text-muted-foreground'}`} />
                     </button>
                     <button onClick={() => handleStar(selectedThread.id)}
-                      className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title="Star">
-                      <Star className={`w-4 h-4 ${getMeta(selectedThread.id).starred ? 'fill-amber-400 text-amber-400' : 'text-gray-400'}`} />
+                      className="p-2 hover:bg-accent rounded-xl transition-colors" title="Star — S" aria-label="Star">
+                      <Star className={`w-4 h-4 ${getMeta(selectedThread.id).starred ? 'fill-gold text-gold' : 'text-muted-foreground'}`} />
                     </button>
                     <button onClick={() => handleSnooze(selectedThread.id)}
-                      className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title="Snooze">
-                      <AlarmClock className={`w-4 h-4 ${getMeta(selectedThread.id).snoozedUntil ? 'text-purple-500' : 'text-gray-400'}`} />
+                      className="p-2 hover:bg-accent rounded-xl transition-colors" title="Snooze — B" aria-label="Snooze">
+                      <AlarmClock className={`w-4 h-4 ${getMeta(selectedThread.id).snoozedUntil ? 'text-gold' : 'text-muted-foreground'}`} />
                     </button>
                     <button onClick={() => handleArchive(selectedThread.id)}
-                      className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title="Archive">
-                      <Archive className="w-4 h-4 text-gray-400" />
+                      className="p-2 hover:bg-accent rounded-xl transition-colors" title="Archive — E" aria-label="Archive">
+                      <Archive className="w-4 h-4 text-muted-foreground" />
                     </button>
                     <button onClick={() => handleTrash(selectedThread.id)}
-                      className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title="Trash">
-                      <Trash2 className="w-4 h-4 text-gray-400" />
+                      className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-xl transition-colors text-muted-foreground" title="Trash — #" aria-label="Move to trash">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
