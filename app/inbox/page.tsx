@@ -758,41 +758,46 @@ function ThreadListItem({ thread, selected, analysis, meta, onSelect, onStar }: 
 
   return (
     <button onClick={onSelect}
-      className={`w-full text-left px-4 py-3 transition-all border-l-[3px] group ${
+      data-thread-id={thread.id}
+      role="option"
+      aria-selected={selected}
+      aria-label={`${isUnread ? 'Unread. ' : ''}${thread.from.name}: ${thread.subject}`}
+      className={`w-full text-left px-4 py-3 transition-colors border-l-[3px] group outline-none focus-visible:bg-accent ${
         selected
-          ? 'bg-gradient-to-r from-blue-50/80 to-indigo-50/40 border-l-blue-600'
-          : 'border-l-transparent hover:bg-gray-50/80'
+          ? 'bg-accent border-l-primary'
+          : 'border-l-transparent hover:bg-accent/40'
       }`}>
       <div className="flex items-start gap-3">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs shrink-0 mt-0.5 font-semibold transition-colors ${
           isUnread
-            ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm shadow-blue-500/20'
-            : 'bg-gray-100 text-gray-500'
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'bg-muted text-muted-foreground'
         }`}>
           {thread.from.avatar || thread.from.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1">
-            <span className={`text-sm truncate ${isUnread ? 'font-bold text-gray-900' : 'font-medium text-gray-600'}`}>
+            <span className={`text-sm truncate ${isUnread ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
               {thread.from.name}
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
               <button onClick={e => { e.stopPropagation(); onStar() }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
-                <Star className={`w-3.5 h-3.5 ${meta.starred ? 'fill-amber-400 text-amber-400' : 'text-gray-300 hover:text-amber-400'}`} />
+                aria-label={meta.starred ? 'Unstar' : 'Star'}
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-0.5 rounded">
+                <Star className={`w-3.5 h-3.5 ${meta.starred ? 'fill-gold text-gold' : 'text-muted-foreground/50 hover:text-gold'}`} />
               </button>
-              <span className="text-[11px] text-gray-400 font-medium">{timeAgo(thread.timestamp)}</span>
+              <span className="text-[11px] text-muted-foreground font-medium">{timeAgo(thread.timestamp)}</span>
             </div>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            {analysis && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor[analysis.priority] ?? 'bg-gray-300'}`} />}
-            <p className={`text-[13px] truncate ${isUnread ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+            {analysis && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor[analysis.priority] ?? 'bg-muted-foreground/40'}`} />}
+            <p className={`text-[13px] truncate ${isUnread ? 'font-semibold text-foreground' : 'text-foreground/80'}`}>
               {thread.subject}
             </p>
           </div>
-          <p className="text-xs text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">{thread.preview}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{thread.preview}</p>
           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-            {meta.starred && <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />}
+            {meta.starred && <Star className="w-3 h-3 fill-gold text-gold shrink-0" />}
             {analysis && <CategoryBadge category={analysis.category} />}
             {analysis?.followUpNeeded && (
               <span className="text-[10px] text-orange-600 font-semibold flex items-center gap-0.5 bg-orange-50 px-1.5 py-0.5 rounded-full">
@@ -800,12 +805,12 @@ function ThreadListItem({ thread, selected, analysis, meta, onSelect, onStar }: 
               </span>
             )}
             {meta.snoozedUntil && (
-              <span className="text-[10px] text-purple-600 font-semibold flex items-center gap-0.5 bg-purple-50 px-1.5 py-0.5 rounded-full">
+              <span className="text-[10px] font-semibold flex items-center gap-0.5 bg-gold/15 text-gold-foreground px-1.5 py-0.5 rounded-full">
                 <AlarmClock className="w-2.5 h-2.5" />Snoozed
               </span>
             )}
             {overviewTags.slice(0, 2).map(tag => (
-              <Badge key={tag} variant="outline" className="rounded-full border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600">
+              <Badge key={tag} variant="outline" className="rounded-full border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                 {tag}
               </Badge>
             ))}
@@ -836,7 +841,7 @@ function SummarySection({ thread, analysis, meta }: { thread: Thread; analysis: 
         </div>
         <div>
           <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
-            <Sparkles className="w-4 h-4 text-blue-600" />
+            <Sparkles className="w-4 h-4 text-primary" />
             Executive summary
           </CardTitle>
           <CardDescription className="mt-1 text-gray-500">
