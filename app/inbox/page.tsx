@@ -2456,7 +2456,7 @@ export default function InboxPage() {
                             {(['all', 'work', 'personal', 'finance', 'updates', 'spam'] as FilterCategory[]).map(v => (
                               <button key={v} onClick={() => setFilterCategory(v)}
                                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all capitalize ${
-                                  filterCategory === v ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  filterCategory === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'
                                 }`}>
                                 {v}
                               </button>
@@ -2479,7 +2479,7 @@ export default function InboxPage() {
               {(search || activeFiltersCount > 0) && (
                 <div className="flex flex-wrap gap-1.5">
                   {search && (
-                    <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700 text-[10px]">
+                    <Badge variant="outline" className="rounded-full border-primary/20 bg-accent text-primary text-[10px]">
                       Search: {search.length > 20 ? `${search.slice(0, 20)}...` : search}
                     </Badge>
                   )}
