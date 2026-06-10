@@ -1251,9 +1251,10 @@ function ComposePanel({ thread, initialText, meta, onUpdateDraft, onClose, isAut
           ref={textareaRef}
           value={text}
           onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSend() } }}
           placeholder="Write your reply..."
           rows={5}
-          className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-300 transition-all"
+          className="w-full text-sm text-foreground border border-border rounded-xl p-4 resize-none focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/60 transition-all"
         />
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -1261,7 +1262,7 @@ function ComposePanel({ thread, initialText, meta, onUpdateDraft, onClose, isAut
           {aiTools.map(t => (
             <button key={t.action} onClick={() => handleRewrite(t.action)}
               disabled={!text.trim() || !!rewriting}
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:border-primary/40 hover:bg-accent hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all">
               {rewriting === t.action ? <Loader2 className="w-3 h-3 animate-spin" /> : <t.icon className="w-3 h-3" />}
               {t.label}
             </button>
@@ -1271,7 +1272,7 @@ function ComposePanel({ thread, initialText, meta, onUpdateDraft, onClose, isAut
         <div className="flex items-center justify-between">
           <p className="text-[11px] text-gray-400 font-medium">{text.length > 0 ? `${text.split(/\s+/).filter(Boolean).length} words` : ''}</p>
           <Button size="sm" onClick={handleSend} disabled={!text.trim() || sent || sending}
-            className={`rounded-xl px-5 ${sent ? 'bg-green-600 hover:bg-green-600' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'}`}>
+            className={`rounded-xl px-5 ${sent ? 'bg-emerald-600 hover:bg-emerald-600' : 'bg-primary hover:bg-primary/90'}`}>
             {sending ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending...</> :
              sent ? <><Check className="w-3.5 h-3.5 mr-1.5" /> Sent{isAuthenticated ? ' via Gmail' : ''}</> :
              <><Send className="w-3.5 h-3.5 mr-1.5" /> {isAuthenticated ? 'Send via Gmail' : 'Send'}</>}
