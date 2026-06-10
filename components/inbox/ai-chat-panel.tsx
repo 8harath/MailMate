@@ -262,8 +262,8 @@ export function AIChatPanel({ thread, isGmail }: { thread: Thread | null; isGmai
               )}
               <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                 m.role === 'user'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-800'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-foreground'
               }`}>
                 {m.content}
               </div>
@@ -292,7 +292,7 @@ export function AIChatPanel({ thread, isGmail }: { thread: Thread | null; isGmai
           size="sm"
           onClick={send}
           disabled={loading || !input.trim()}
-          className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-3"
+          className="rounded-xl bg-primary hover:bg-primary/90 px-3"
         >
           <Send className="w-4 h-4" />
         </Button>
