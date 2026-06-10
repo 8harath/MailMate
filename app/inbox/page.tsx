@@ -2601,28 +2601,28 @@ export default function InboxPage() {
                 {/* User labels on thread */}
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
                   {getMeta(selectedThread.id).userLabels.map(label => (
-                    <Badge key={label} variant="outline" className="rounded-full border-indigo-100 bg-indigo-50 text-indigo-700">
+                    <Badge key={label} variant="outline" className="rounded-full border-primary/20 bg-accent text-primary">
                       <Tag className="w-2.5 h-2.5" />{label}
-                      <button onClick={() => handleRemoveLabel(selectedThread.id, label)} className="hover:text-red-500 ml-0.5 transition-colors"><X className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => handleRemoveLabel(selectedThread.id, label)} aria-label={`Remove label ${label}`} className="hover:text-destructive ml-0.5 transition-colors"><X className="w-2.5 h-2.5" /></button>
                     </Badge>
                   ))}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-slate-900 rounded-full px-2.5 py-1 border border-dashed border-gray-300 hover:border-slate-400 transition-colors font-medium">
+                      <button className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground rounded-full px-2.5 py-1 border border-dashed border-border hover:border-primary/40 transition-colors font-medium">
                         <Tag className="w-2.5 h-2.5" /> Add label
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48 rounded-xl border-gray-200 p-2">
-                      <DropdownMenuLabel className="text-xs text-gray-500">Apply a label</DropdownMenuLabel>
+                    <DropdownMenuContent align="start" className="w-48 rounded-xl border-border p-2">
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">Apply a label</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {availableThreadLabels.map(label => (
                         <DropdownMenuItem key={label} onClick={() => handleAddLabel(selectedThread.id, label)} className="rounded-lg text-sm">
-                          <Tag className="w-3.5 h-3.5 text-gray-400" />
+                          <Tag className="w-3.5 h-3.5 text-muted-foreground" />
                           {label}
                         </DropdownMenuItem>
                       ))}
                       {availableThreadLabels.length === 0 && (
-                        <DropdownMenuItem disabled className="rounded-lg text-sm text-gray-400">
+                        <DropdownMenuItem disabled className="rounded-lg text-sm text-muted-foreground">
                           All labels already applied
                         </DropdownMenuItem>
                       )}
@@ -2631,20 +2631,20 @@ export default function InboxPage() {
                 </div>
 
                 {/* Tabs — Emails first (default), then Analysis */}
-                <div className="flex gap-2 mt-4">
-                  <button onClick={() => setActiveTab('emails')}
-                    className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
+                <div className="flex gap-2 mt-4" role="tablist" aria-label="Conversation view">
+                  <button onClick={() => setActiveTab('emails')} role="tab" aria-selected={activeTab === 'emails'}
+                    className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-colors ${
                       activeTab === 'emails'
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20'
-                        : 'text-gray-500 hover:bg-gray-100'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                     }`}>
                     <Mail className="w-3.5 h-3.5" />Emails ({selectedThread.emails.length})
                   </button>
-                  <button onClick={handleAnalysisTab}
-                    className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
+                  <button onClick={handleAnalysisTab} role="tab" aria-selected={activeTab === 'analysis'}
+                    className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-colors ${
                       activeTab === 'analysis'
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20'
-                        : 'text-gray-500 hover:bg-gray-100'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                     }`}>
                     <Sparkles className="w-3.5 h-3.5" />AI Analysis
                   </button>
@@ -2674,7 +2674,7 @@ export default function InboxPage() {
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-semibold ${
                               isOwnEmail(email.from.email)
-                                ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
+                                ? 'bg-primary text-white'
                                 : 'bg-gray-100 text-gray-600'
                             }`}>{email.from.name.charAt(0).toUpperCase()}</div>
                             <div>
