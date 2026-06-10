@@ -2311,7 +2311,7 @@ export default function InboxPage() {
                     : <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-gray-600" />}
                 </button>
                 {labelsOpen && (
-                  <button onClick={() => setShowLabelInput(true)} className="text-gray-400 hover:text-blue-600 transition-colors" title="Create label">
+                  <button onClick={() => setShowLabelInput(true)} className="text-gray-400 hover:text-primary transition-colors" title="Create label">
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -2323,9 +2323,9 @@ export default function InboxPage() {
                       <input value={newLabelText} onChange={e => setNewLabelText(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleCreateLabel(newLabelText); if (e.key === 'Escape') { setShowLabelInput(false); setNewLabelText('') } }}
                         placeholder="Label name..."
-                        className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-300"
+                        className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/60"
                         autoFocus />
-                      <button onClick={() => handleCreateLabel(newLabelText)} className="text-xs text-blue-600 font-bold px-1.5">Add</button>
+                      <button onClick={() => handleCreateLabel(newLabelText)} className="text-xs text-primary font-bold px-1.5">Add</button>
                     </div>
                   )}
                   {allUserLabels.map(label => (
@@ -2344,7 +2344,7 @@ export default function InboxPage() {
               <button onClick={() => setCalendarOpen(!calendarOpen)}
                 className="w-full flex items-center justify-between px-3 pt-3 mb-1 group">
                 <div className="flex items-center gap-2">
-                  <CalendarDays className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Calendar</p>
                 </div>
                 {calendarOpen
