@@ -1344,7 +1344,7 @@ function NewComposePanel({ onClose, isAuthenticated, senderName, onSent }: {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
           <span className="text-sm font-bold text-gray-800 flex items-center gap-2">
-            <PenSquare className="w-4 h-4 text-blue-600" /> New Email
+            <PenSquare className="w-4 h-4 text-primary" /> New Email
           </span>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-4 h-4 text-gray-400" /></button>
         </div>
@@ -1353,18 +1353,19 @@ function NewComposePanel({ onClose, isAuthenticated, senderName, onSent }: {
           <div>
             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">To</label>
             <input value={to} onChange={e => setTo(e.target.value)} placeholder="recipient@email.com"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-300 transition-all" />
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/60 transition-all" />
           </div>
           <div>
             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Subject</label>
             <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-300 transition-all" />
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/60 transition-all" />
           </div>
           <div>
             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Message</label>
             <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write your email..."
+              onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSend() } }}
               rows={8}
-              className="w-full text-sm border border-gray-200 rounded-xl p-4 mt-1 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-300 transition-all" />
+              className="w-full text-sm border border-gray-200 rounded-xl p-4 mt-1 resize-none focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/60 transition-all" />
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
