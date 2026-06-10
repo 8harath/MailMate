@@ -904,7 +904,7 @@ function DraftReplySection({ draft }: { draft: string }) {
     <Card className="overflow-hidden border-gray-200 shadow-sm">
       <CardHeader className="border-b border-gray-100 pb-4">
         <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
-          <FileText className="w-4 h-4 text-blue-600" />
+          <FileText className="w-4 h-4 text-primary" />
           Drafted reply
         </CardTitle>
         <CardDescription className="text-gray-500">
@@ -983,7 +983,7 @@ function MeetingsSection({
                 <p className="text-sm font-semibold text-gray-900">{m.title}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
                   <span className="flex items-center gap-1 font-medium"><Calendar className="w-3 h-3 text-emerald-500" />{m.date}</span>
-                  {m.time && <span className="flex items-center gap-1 font-medium"><Clock className="w-3 h-3 text-blue-500" />{m.time}</span>}
+                  {m.time && <span className="flex items-center gap-1 font-medium"><Clock className="w-3 h-3 text-primary" />{m.time}</span>}
                 </div>
                 {m.attendees.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -1100,7 +1100,7 @@ function DeadlinesSection({ deadlines }: { deadlines: ComprehensiveAnalysis['dea
 
 function KeyInfoSection({ keyInfo }: { keyInfo: ComprehensiveAnalysis['keyInfo'] }) {
   const sections = [
-    { icon: Calendar, label: 'Dates', items: keyInfo.dates, color: 'text-blue-600' },
+    { icon: Calendar, label: 'Dates', items: keyInfo.dates, color: 'text-primary' },
     { icon: Link2, label: 'Links', items: keyInfo.links, color: 'text-emerald-600' },
     { icon: Users, label: 'Contacts', items: keyInfo.contacts, color: 'text-purple-600' },
     { icon: DollarSign, label: 'Amounts', items: keyInfo.amounts, color: 'text-amber-600' },
