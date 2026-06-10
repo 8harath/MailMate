@@ -2418,7 +2418,7 @@ export default function InboxPage() {
                         <div className="flex items-center justify-between mb-3">
                           <p className="text-xs font-bold text-gray-700">Filters</p>
                           {activeFiltersCount > 0 && (
-                            <button onClick={clearFilters} className="text-[10px] text-blue-600 font-semibold hover:underline">Clear all</button>
+                            <button onClick={clearFilters} className="text-[10px] text-primary font-semibold hover:underline">Clear all</button>
                           )}
                         </div>
 
@@ -2428,7 +2428,7 @@ export default function InboxPage() {
                             {(['all', 'unread', 'read'] as FilterRead[]).map(v => (
                               <button key={v} onClick={() => setFilterRead(v)}
                                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all ${
-                                  filterRead === v ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  filterRead === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'
                                 }`}>
                                 {v === 'all' ? 'All' : v === 'unread' ? 'Unread' : 'Read'}
                               </button>
@@ -2442,7 +2442,7 @@ export default function InboxPage() {
                             {(['all', 'urgent', 'important', 'normal', 'low'] as FilterPriority[]).map(v => (
                               <button key={v} onClick={() => setFilterPriority(v)}
                                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all capitalize ${
-                                  filterPriority === v ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  filterPriority === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'
                                 }`}>
                                 {v}
                               </button>
