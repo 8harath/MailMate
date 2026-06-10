@@ -2734,7 +2734,7 @@ export default function InboxPage() {
 
                         {!showCompose && (
                           <button onClick={() => { setComposeInitial(''); setShowCompose(true) }}
-                            className="inline-flex items-center gap-2.5 text-sm font-semibold text-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 px-5 py-3 rounded-xl transition-all border border-blue-200/60">
+                            className="inline-flex items-center gap-2.5 text-sm font-semibold text-primary bg-accent hover:bg-accent/70 px-5 py-3 rounded-xl transition-colors border border-primary/20">
                             <CornerUpLeft className="w-4 h-4" /> Reply to this email
                           </button>
                         )}
@@ -2780,7 +2780,7 @@ export default function InboxPage() {
             <aside className="w-80 border-l border-gray-200/80 flex flex-col shrink-0 bg-white overflow-hidden min-h-0 h-full">
               <div className="h-14 border-b border-gray-100 flex items-center justify-between px-4 shrink-0">
                 <span className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                  <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
                     <Network className="w-4 h-4 text-white" />
                   </div>
                   AI Orchestrator
@@ -2820,6 +2820,16 @@ export default function InboxPage() {
           onClose={() => setShowApprovalQueue(false)}
         />
       )}
+
+      {/* Command palette (⌘K) + keyboard shortcuts (?) */}
+      <CommandPalette
+        open={showPalette}
+        onOpenChange={setShowPalette}
+        actions={paletteActions}
+        threads={paletteThreads}
+        onOpenThread={handleSelect}
+      />
+      <ShortcutsHelp open={showShortcuts} onOpenChange={setShowShortcuts} />
     </div>
   )
 }
