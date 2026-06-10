@@ -2700,7 +2700,7 @@ export default function InboxPage() {
                     {/* Reply button in emails tab */}
                     {!showCompose && selectedThread.emails.length > 0 && (
                       <button onClick={() => { setComposeInitial(''); setShowCompose(true) }}
-                        className="inline-flex items-center gap-2.5 text-sm font-semibold text-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 px-5 py-3 rounded-xl transition-all border border-blue-200/60">
+                        className="inline-flex items-center gap-2.5 text-sm font-semibold text-primary bg-accent hover:bg-accent/70 px-5 py-3 rounded-xl transition-colors border border-primary/20">
                         <CornerUpLeft className="w-4 h-4" /> Reply
                       </button>
                     )}
@@ -2709,8 +2709,8 @@ export default function InboxPage() {
                   <div className="p-6 space-y-5 max-w-3xl">
                     {isLoadingSelected ? (
                       <div className="py-20 text-center">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                        <div className="w-16 h-16 bg-accent rounded-3xl flex items-center justify-center mx-auto mb-4">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         </div>
                         <p className="text-sm font-semibold text-gray-600">Analyzing with AI...</p>
                         <p className="text-xs text-gray-400 mt-1.5">Extracting insights, tasks, meetings, and more</p>
