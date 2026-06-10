@@ -19,10 +19,10 @@ export function AutomationStatusBar({
   if (!isRunning && autoExecuted === 0 && pendingCount === 0) return null
 
   return (
-    <div className="px-4 py-2 border-b border-gray-100 bg-gradient-to-r from-violet-50/80 to-blue-50/80 flex items-center gap-3 shrink-0">
+    <div className="px-4 py-2 border-b border-border bg-accent/40 flex items-center gap-3 shrink-0">
       <div className="flex items-center gap-1.5">
-        <Zap className={`w-3.5 h-3.5 ${isRunning ? 'text-violet-500 animate-pulse' : 'text-violet-400'}`} />
-        <span className="text-xs font-semibold text-violet-700">
+        <Zap className={`w-3.5 h-3.5 ${isRunning ? 'text-primary animate-pulse-soft' : 'text-primary/70'}`} />
+        <span className="text-xs font-semibold text-primary">
           {isRunning ? 'Automation running...' : 'Automation'}
         </span>
       </div>
