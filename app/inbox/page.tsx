@@ -2009,89 +2009,205 @@ export default function InboxPage() {
     ? allUserLabels.filter(label => !getMeta(selectedThread.id).userLabels.includes(label))
     : []
 
+  // ─── Keyboard navigation ──────────────────────────────────────
+  const moveSelection = useCallback((delta: number) => {
+    if (filteredThreads.length === 0) return
+    const currentIndex = filteredThreads.findIndex(t => t.id === selectedId)
+    let next = currentIndex === -1 ? (delta > 0 ? 0 : filteredThreads.length - 1) : currentIndex + delta
+    next = Math.max(0, Math.min(filteredThreads.length - 1, next))
+    const target = filteredThreads[next]
+    if (!target) return
+    handleSelect(target.id)
+    // Keep the focused row visible in the list
+    requestAnimationFrame(() => {
+      document.querySelector(`[data-thread-id="${target.id}"]`)?.scrollIntoView({ block: 'nearest' })
+    })
+  }, [filteredThreads, selectedId, handleSelect])
+
+  const dialogOpen = showPalette || showShortcuts
+  const inThread = !isCalendarView && !!selectedThread
+
+  // Always-on: command palette + help (work even while typing)
+  useKeyboardShortcuts([
+    { combo: 'mod+k', allowInInput: true, handler: () => { setShowShortcuts(false); setShowPalette(o => !o) } },
+    { combo: '?', handler: () => { setShowPalette(false); setShowShortcuts(o => !o) } },
+  ])
+
+  // Inbox-context shortcuts — suspended while a dialog owns the keyboard
+  const inboxShortcuts: Shortcut[] = [
+    { combo: '/', handler: () => searchInputRef.current?.focus(), enabled: !isCalendarView },
+    { combo: 'j', handler: () => moveSelection(1), enabled: !isCalendarView },
+    { combo: 'k', handler: () => moveSelection(-1), enabled: !isCalendarView },
+    { combo: ['enter', 'o'], handler: () => { if (selectedId) handleSelect(selectedId) }, enabled: inThread },
+    { combo: 'e', handler: () => selectedThread && handleArchive(selectedThread.id), enabled: inThread },
+    { combo: 's', handler: () => selectedThread && handleStar(selectedThread.id), enabled: inThread },
+    { combo: '#', handler: () => selectedThread && handleTrash(selectedThread.id), enabled: inThread },
+    { combo: 'u', handler: () => selectedThread && handleMarkUnread(selectedThread.id), enabled: inThread },
+    { combo: 'b', handler: () => selectedThread && handleSnooze(selectedThread.id), enabled: inThread },
+    { combo: 'a', handler: () => { if (selectedThread) setActiveTab(t => (t === 'analysis' ? 'emails' : 'analysis')) }, enabled: inThread },
+    { combo: 'c', handler: () => setShowNewCompose(true) },
+    { combo: 'shift+a', handler: () => setShowChat(o => !o) },
+    { combo: 'g i', handler: () => handleFolderChange('inbox') },
+    { combo: 'g s', handler: () => handleFolderChange('starred') },
+    { combo: 'g t', handler: () => handleFolderChange('sent') },
+    { combo: 'g c', handler: () => handleFolderChange('calendar') },
+    {
+      combo: 'escape',
+      allowInInput: true,
+      preventDefault: false,
+      handler: () => {
+        if (search) { clearSearch(); searchInputRef.current?.blur() }
+        else if (showChat) setShowChat(false)
+      },
+    },
+  ]
+  useKeyboardShortcuts(inboxShortcuts, !dialogOpen)
+
+  // Trigger analysis when the keyboard opens the Analysis tab
+  useEffect(() => {
+    if (activeTab === 'analysis' && selectedId && !analyses[selectedId] && !loadingThreads.has(selectedId)) {
+      analyzeThread(selectedId)
+    }
+  }, [activeTab, selectedId, analyses, loadingThreads, analyzeThread])
+
+  // ─── Command palette contents ─────────────────────────────────
+  const paletteActions: PaletteAction[] = [
+    { id: 'compose', group: 'Actions', label: 'Compose new email', icon: PenSquare, hint: 'C', keywords: 'write new message', perform: () => setShowNewCompose(true) },
+    { id: 'ai-chat', group: 'Actions', label: showChat ? 'Hide AI chat' : 'Open AI chat', icon: Bot, hint: '⇧A', keywords: 'assistant copilot', perform: () => setShowChat(o => !o) },
+    ...(isAuthenticated ? [{ id: 'refresh', group: 'Actions', label: 'Sync mail & calendar', icon: RefreshCw, keywords: 'reload fetch gmail', perform: () => handleRefresh() } as PaletteAction] : []),
+    ...(pendingActions.length > 0 ? [{ id: 'approvals', group: 'Actions', label: `Review approval queue (${pendingActions.length})`, icon: ListChecks, keywords: 'automation pending', perform: () => setShowApprovalQueue(true) } as PaletteAction] : []),
+    { id: 'shortcuts', group: 'Actions', label: 'Keyboard shortcuts', icon: Keyboard, hint: '?', keywords: 'help keys', perform: () => setShowShortcuts(true) },
+
+    ...(inThread ? [
+      { id: 'archive', group: 'This conversation', label: 'Archive', icon: Archive, hint: 'E', perform: () => selectedThread && handleArchive(selectedThread.id) },
+      { id: 'star', group: 'This conversation', label: getMeta(selectedThread!.id).starred ? 'Unstar' : 'Star', icon: Star, hint: 'S', perform: () => selectedThread && handleStar(selectedThread.id) },
+      { id: 'snooze', group: 'This conversation', label: 'Snooze', icon: AlarmClock, hint: 'B', perform: () => selectedThread && handleSnooze(selectedThread.id) },
+      { id: 'unread', group: 'This conversation', label: 'Mark as unread', icon: Mail, hint: 'U', perform: () => selectedThread && handleMarkUnread(selectedThread.id) },
+      { id: 'analysis', group: 'This conversation', label: 'Run AI analysis', icon: Sparkles, hint: 'A', perform: () => handleAnalysisTab() },
+      { id: 'trash', group: 'This conversation', label: 'Move to trash', icon: Trash2, hint: '#', perform: () => selectedThread && handleTrash(selectedThread.id) },
+    ] as PaletteAction[] : []),
+
+    ...sidebarItems.map(item => ({
+      id: `go-${item.folder}`,
+      group: 'Go to',
+      label: `Go to ${item.label}`,
+      icon: item.icon,
+      keywords: `navigate folder ${item.label}`,
+      perform: () => handleFolderChange(item.folder),
+    } as PaletteAction)),
+  ]
+
+  const paletteThreads: PaletteThread[] = useMemo(
+    () => filteredThreads.slice(0, 40).map(t => ({
+      id: t.id,
+      subject: t.subject,
+      from: t.from.name,
+      unread: !getMeta(t.id).read,
+    })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filteredThreads, metas],
+  )
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50/50">
+    <div className="h-screen flex flex-col bg-background">
       {/* Top bar */}
-      <header className="border-b border-gray-200/80 bg-white/80 backdrop-blur-xl h-16 flex items-center px-4 gap-4 shrink-0 shadow-sm shadow-gray-100/50">
-        <NextLink href="/" className="hover:opacity-80 transition-opacity">
+      <header className="border-b border-border glass h-16 flex items-center px-4 gap-4 shrink-0">
+        <NextLink href="/" className="hover:opacity-80 transition-opacity rounded-lg" aria-label="MailMate home">
           <Logo size="sm" />
         </NextLink>
 
         <div className="flex-1 max-w-lg relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <Input
+            ref={searchInputRef}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={isCalendarView ? 'Calendar workspace is active' : 'Search emails, contacts, labels, and thread content...'}
+            placeholder={isCalendarView ? 'Calendar workspace is active' : 'Search mail…  press / to focus'}
             disabled={isCalendarView}
-            className="pl-10 text-sm h-10 bg-gray-50/80 border-gray-200 rounded-xl focus:bg-white transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+            aria-label="Search conversations"
+            className="pl-10 pr-20 text-sm h-10 bg-muted/60 border-border rounded-xl focus:bg-card transition-colors disabled:cursor-not-allowed disabled:opacity-70"
           />
-          {search && !isCalendarView && (
-            <button onClick={clearSearch} className="absolute right-3.5 top-1/2 -translate-y-1/2">
-              <X className="w-3.5 h-3.5 text-gray-400" />
+          {search && !isCalendarView ? (
+            <button onClick={clearSearch} aria-label="Clear search"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-muted-foreground hover:text-foreground">
+              <X className="w-3.5 h-3.5" />
             </button>
-          )}
+          ) : !isCalendarView ? (
+            <button
+              onClick={() => setShowPalette(true)}
+              aria-label="Open command palette"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground shadow-sm transition-colors hover:text-foreground sm:flex"
+            >
+              <CommandIcon className="size-3" />K
+            </button>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          {gmailLoading && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+          {gmailLoading && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
 
           {/* Refresh button */}
           {isAuthenticated && (
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={gmailLoading}
-              className="rounded-full" title="Refresh emails">
+              className="rounded-full" aria-label="Sync mail and calendar" title="Sync (in palette: ⌘K)">
               <RefreshCw className={`w-4 h-4 ${gmailLoading ? 'animate-spin' : ''}`} />
             </Button>
           )}
 
           {/* Compose new email */}
           <Button variant="outline" size="sm" onClick={() => setShowNewCompose(true)}
-            className="rounded-full">
+            className="rounded-full" title="Compose — C">
             <PenSquare className="w-4 h-4 mr-1.5" /> Compose
           </Button>
 
           {isAuthenticated && (
-            <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Gmail Connected
+            <Badge variant="outline" className="rounded-full border-primary/20 bg-accent px-3 py-1.5 text-primary">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" /> Gmail Connected
             </Badge>
           )}
 
           <Button variant="outline" size="sm" onClick={() => setShowChat(!showChat)}
-            className={`rounded-full ${showChat ? 'bg-blue-50 border-blue-200 text-blue-700' : ''}`}>
+            className={`rounded-full ${showChat ? 'bg-accent border-primary/20 text-primary' : ''}`}
+            title="AI chat — Shift A" aria-pressed={showChat}>
             <Bot className="w-4 h-4 mr-1.5" /> AI Chat
+          </Button>
+
+          <Button variant="ghost" size="icon" onClick={() => setShowShortcuts(true)}
+            className="rounded-full text-muted-foreground hover:text-foreground" title="Keyboard shortcuts — ?" aria-label="Keyboard shortcuts">
+            <Keyboard className="w-4 h-4" />
           </Button>
 
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full border border-gray-200 bg-white pl-1.5 pr-2.5 py-1 shadow-sm transition-colors hover:bg-gray-50 h-9">
-                  <Avatar className="h-7 w-7 border border-gray-200">
+                <button className="flex items-center gap-2 rounded-full border border-border bg-card pl-1.5 pr-2.5 py-1 shadow-sm transition-colors hover:bg-accent/50 h-9">
+                  <Avatar className="h-7 w-7 border border-border">
                     <AvatarImage src={session?.user?.image ?? ''} alt={session?.user?.name ?? 'User'} />
-                    <AvatarFallback className="bg-slate-100 text-slate-700 text-xs">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                       {session?.user?.name?.charAt(0) ?? 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="max-w-[120px] truncate text-sm font-medium text-gray-700">
+                  <span className="max-w-[120px] truncate text-sm font-medium text-foreground">
                     {session?.user?.name ?? 'Account'}
                   </span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-xl border-gray-200 p-2">
-                <DropdownMenuLabel className="text-xs text-gray-500">Connected Google account</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl border-border p-2">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Connected Google account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="rounded-lg text-sm">
-                  <Mail className="w-4 h-4 text-gray-400" />
+                  <Mail className="w-4 h-4 text-muted-foreground" />
                   {session?.user?.email ?? 'No email available'}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut()} className="rounded-lg text-sm">
-                  <LogOut className="w-4 h-4 text-gray-400" />
+                  <LogOut className="w-4 h-4 text-muted-foreground" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button variant="outline" size="sm" onClick={() => signIn('google', { callbackUrl: '/inbox' })}
-              className="rounded-full border-blue-200 text-blue-700 hover:bg-blue-50">
+              className="rounded-full border-primary/30 text-primary hover:bg-accent">
               <LogIn className="w-4 h-4 mr-1.5" /> Connect Gmail
             </Button>
           )}
@@ -2143,20 +2259,21 @@ export default function InboxPage() {
               return (
                 <button key={item.folder} onClick={() => handleFolderChange(item.folder)}
                   title={!isSidebarOpen ? item.label : undefined}
+                  aria-current={active ? 'page' : undefined}
                   className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
                     active
-                      ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-semibold shadow-sm shadow-blue-100/50'
-                      : 'text-gray-600 hover:bg-gray-50 font-medium'
+                      ? 'bg-accent text-primary font-semibold shadow-[inset_2px_0_0_var(--primary)]'
+                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground font-medium'
                   } ${isSidebarOpen ? '' : 'justify-center'}`}>
-                  <item.icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <item.icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                   {isSidebarOpen && <span className="flex-1 text-left truncate">{item.label}</span>}
                   {isSidebarOpen && count ? (
                     <span className={`text-[11px] font-bold min-w-[20px] text-center ${
-                      active ? 'text-blue-600' : item.folder === 'inbox' && count > 0 ? 'bg-blue-600 text-white rounded-full px-1.5 py-0.5' : 'text-gray-400'
+                      active ? 'text-primary' : item.folder === 'inbox' && count > 0 ? 'bg-primary text-primary-foreground rounded-full px-1.5 py-0.5' : 'text-muted-foreground'
                     }`}>{count}</span>
                   ) : null}
                   {!isSidebarOpen && count && item.folder === 'inbox' && count > 0 ? (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-600" />
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary" />
                   ) : null}
                 </button>
               )
