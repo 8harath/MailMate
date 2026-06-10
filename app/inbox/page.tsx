@@ -2377,7 +2377,7 @@ export default function InboxPage() {
                       href={event.htmlLink ?? '#'}
                       target={event.htmlLink ? '_blank' : undefined}
                       rel={event.htmlLink ? 'noreferrer' : undefined}
-                      className="block rounded-xl border border-gray-200 bg-gray-50/80 px-2.5 py-2 hover:border-blue-200 hover:bg-blue-50/60 transition-colors overflow-hidden"
+                      className="block rounded-xl border border-border bg-muted/60 px-2.5 py-2 hover:border-primary/30 hover:bg-accent/60 transition-colors overflow-hidden"
                     >
                       <p className="text-[11px] font-semibold text-gray-800 truncate">{event.title}</p>
                       <p className="text-[10px] text-gray-500 mt-0.5">{formatCalendarEventLabel(event.start)}</p>
@@ -2404,11 +2404,11 @@ export default function InboxPage() {
                 <div className="flex items-center gap-1.5">
                   <div ref={filterRef} className="relative">
                     <button onClick={() => setShowFilterMenu(!showFilterMenu)}
-                      className={`p-1.5 rounded-lg transition-colors ${showFilterMenu || activeFiltersCount > 0 ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${showFilterMenu || activeFiltersCount > 0 ? 'bg-accent text-primary' : 'hover:bg-accent text-muted-foreground'}`}
                       title="Filters">
                       <Filter className="w-3.5 h-3.5" />
                       {activeFiltersCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
+                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
                           {activeFiltersCount}
                         </span>
                       )}
