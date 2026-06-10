@@ -1373,7 +1373,7 @@ function NewComposePanel({ onClose, isAuthenticated, senderName, onSent }: {
             {aiTools.map(t => (
               <button key={t.action} onClick={() => handleRewrite(t.action)}
                 disabled={!body.trim() || !!rewriting}
-                className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:border-primary/40 hover:bg-accent hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                 {rewriting === t.action ? <Loader2 className="w-3 h-3 animate-spin" /> : <t.icon className="w-3 h-3" />}
                 {t.label}
               </button>
@@ -1387,7 +1387,7 @@ function NewComposePanel({ onClose, isAuthenticated, senderName, onSent }: {
             <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl">Cancel</Button>
             <Button size="sm" onClick={handleSend}
               disabled={!to.trim() || !subject.trim() || !body.trim() || sent || sending}
-              className={`rounded-xl px-5 ${sent ? 'bg-green-600 hover:bg-green-600' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'}`}>
+              className={`rounded-xl px-5 ${sent ? 'bg-emerald-600 hover:bg-emerald-600' : 'bg-primary hover:bg-primary/90'}`}>
               {sending ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending...</> :
                sent ? <><Check className="w-3.5 h-3.5 mr-1.5" /> Sent!</> :
                <><Send className="w-3.5 h-3.5 mr-1.5" /> {isAuthenticated ? 'Send via Gmail' : 'Send'}</>}
@@ -1444,6 +1444,11 @@ export default function InboxPage() {
   const [gmailError, setGmailError] = useState<string | null>(null)
   const [calendarDate, setCalendarDate] = useState<Date>(new Date())
   const filterRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Command palette + keyboard help
+  const [showPalette, setShowPalette] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
 
   // Automation state
   const [automationRunning, setAutomationRunning] = useState(false)
