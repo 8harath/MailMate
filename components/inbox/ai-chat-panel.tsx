@@ -14,7 +14,7 @@ import { Thread, AIChatMessage, DelegationStep, AgentMemoryEntry } from '@/types
 const DELEGATION_LABELS: Record<string, { label: string; color: string }> = {
   triage: { label: 'Triage Agent', color: 'bg-amber-100 text-amber-700 border-amber-200' },
   scheduler: { label: 'Scheduling Agent', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  writer: { label: 'Email Assistant', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  writer: { label: 'Email Assistant', color: 'bg-accent text-primary border-primary/20' },
   memory: { label: 'Memory', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
 }
 
@@ -45,7 +45,7 @@ function AgentStepIndicator({ steps, delegations }: { steps?: AIChatMessage['ste
       <DelegationBadges delegations={delegations} />
       {toolCalls.length > 0 && (
         <>
-          <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1.5 text-[11px] text-blue-600 hover:text-blue-700 font-medium">
+          <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1.5 text-[11px] text-primary hover:text-primary/80 font-medium">
             <Zap className="w-3 h-3" />
             Used {toolCalls.length} tool{toolCalls.length > 1 ? 's' : ''}
             <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -243,10 +243,10 @@ export function AIChatPanel({ thread, isGmail }: { thread: Thread | null; isGmai
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center py-12 text-gray-400 text-sm">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Network className="w-7 h-7 text-blue-400" />
+            <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Network className="w-7 h-7 text-primary" />
             </div>
-            <p className="font-medium text-gray-500">AI Orchestrator</p>
+            <p className="font-medium text-muted-foreground">AI Orchestrator</p>
             <p className="text-xs mt-1 max-w-[200px] mx-auto">
               {isGmail
                 ? 'Multi-agent system: triage inbox, schedule meetings, draft replies — with learned preferences'
